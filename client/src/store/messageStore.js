@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import api from "../api/client";
+import { useAuthStore } from "./authStore";
 
 const updateMessage = (messages, messageId, updater) =>
   messages.map((m) => (m._id === messageId ? updater(m) : m));
@@ -85,8 +86,24 @@ export const useMessageStore = create((set, get) => ({
   },
 
   sendMessage: async (conversationId, body, mediaUrl = "", mediaType = "", replyTo = null) => {
-    const { data } = await api.post(`/messages/${conversationId}`, { body, mediaUrl, mediaType, replyTo });
-    set((state) => ({ messages: [...state.messages, data.message] }));
+    const currentUserId = useAuthStore.getState().user?.id;
+    const tempId = `temp_${Date.now()}`;
+    const optimisticMsg = {
+      _id: tempId,
+      conversation: conversationId,
+      sender: { _id: currentUserId },
+      body: body || "",
+      mediaUrl: mediaUrl || "",
+      mediaType: mediaType || "",
+      replyTo: replyTo || null,
+      reactions: [],
+      createdAt: new Date().toISOString(),
+      _optimistic: true,
+    };
+
+    // Show message instantly
+    set((state) => ({ messages: [...state.messages, optimisticMsg] }));
+
     const previewText = body?.trim() || (mediaType === "audio" ? "🎙️ Voice note" : "📷 Photo");
     set((state) => ({
       conversations: state.conversations.map((c) =>
@@ -95,7 +112,21 @@ export const useMessageStore = create((set, get) => ({
           : c
       ),
     }));
-    return data.message;
+
+    try {
+      const { data } = await api.post(`/messages/${conversationId}`, { body, mediaUrl, mediaType, replyTo });
+      // Replace optimistic message with real one
+      set((state) => ({
+        messages: state.messages.map((m) => m._id === tempId ? data.message : m),
+      }));
+      return data.message;
+    } catch (err) {
+      // Remove failed optimistic message
+      set((state) => ({
+        messages: state.messages.filter((m) => m._id !== tempId),
+      }));
+      throw err;
+    }
   },
 
   editMessage: async (messageId, body) => {
@@ -151,11 +182,16 @@ export const useMessageStore = create((set, get) => ({
   addIncomingMessage: (message, conversationId) => {
     const { activeConversation, unreadCount } = get();
     if (activeConversation?._id === conversationId) {
-      set((state) => ({
-        messages: state.messages.some((m) => m._id === message._id)
-          ? state.messages
-          : [...state.messages, message],
-      }));
+      set((state) => {
+        // Check if we already have this message (by real ID)
+        const hasReal = state.messages.some((m) => m._id === message._id);
+        if (hasReal) return {};
+        // Remove matching optimistic message from same sender
+        const filtered = state.messages.filter(
+          (m) => !(m._optimistic && m.body === message.body && String(m.sender?._id) === String(message.sender?._id))
+        );
+        return { messages: [...filtered, message] };
+      });
       get().markConversationRead(conversationId);
     } else {
       set({ unreadCount: unreadCount + 1 });

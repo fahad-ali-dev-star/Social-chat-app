@@ -61,6 +61,10 @@ export default function App() {
     socket = io(backendUrl, {
       withCredentials: true,
       auth: { token },
+      transports: ["websocket", "polling"],
+      reconnectionDelay: 500,
+      reconnectionDelayMax: 2000,
+      timeout: 5000,
     });
     window.__socketInstance = socket;
 

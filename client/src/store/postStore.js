@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import api from "../api/client";
+import { useAuthStore } from "./authStore";
 
 export const usePostStore = create((set, get) => ({
   posts: [],
@@ -33,11 +34,47 @@ export const usePostStore = create((set, get) => ({
   },
 
   createPost: async (content, mediaUrl = "", mediaUrls = [], mediaType = "image", visibility = "public") => {
-    const { data } = await api.post("/posts", { content, mediaUrl, mediaUrls, mediaType, visibility });
+    const user = useAuthStore.getState().user;
+    const tempId = `temp_${Date.now()}`;
+    const optimisticPost = {
+      _id: tempId,
+      author: { _id: user?.id, username: user?.username, displayName: user?.displayName, avatarUrl: "" },
+      content,
+      mediaUrl: mediaUrls[0] || mediaUrl || "",
+      mediaUrls: mediaUrls.length ? mediaUrls : mediaUrl ? [mediaUrl] : [],
+      mediaType,
+      visibility,
+      likes: [],
+      likesCount: 0,
+      _liked: false,
+      commentCount: 0,
+      hashtags: [],
+      mentions: [],
+      isPinned: false,
+      isEdited: false,
+      createdAt: new Date().toISOString(),
+      _optimistic: true,
+    };
+
+    // Show post instantly
     set((state) => ({
-      posts: [data.post, ...(Array.isArray(state.posts) ? state.posts : [])],
+      posts: [optimisticPost, ...(Array.isArray(state.posts) ? state.posts : [])],
     }));
-    return data.post;
+
+    try {
+      const { data } = await api.post("/posts", { content, mediaUrl, mediaUrls, mediaType, visibility });
+      // Replace optimistic post with real one
+      set((state) => ({
+        posts: state.posts.map((p) => p._id === tempId ? data.post : p),
+      }));
+      return data.post;
+    } catch (err) {
+      // Remove failed optimistic post
+      set((state) => ({
+        posts: state.posts.filter((p) => p._id !== tempId),
+      }));
+      throw err;
+    }
   },
 
   toggleLike: async (postId) => {

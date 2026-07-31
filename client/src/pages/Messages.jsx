@@ -230,12 +230,12 @@ export default function Messages() {
   };
 
   const handleSend = async () => {
-    if ((!messageText.trim() && !mediaUrl) || !activeConversation || sending) return;
-    setSending(true);
+    if ((!messageText.trim() && !mediaUrl) || !activeConversation) return;
     const text = messageText.trim();
     const url = mediaUrl;
     const type = mediaType;
 
+    // Clear input instantly for snappy feel
     setMessageText("");
     setMediaUrl("");
     setMediaType("");
@@ -244,11 +244,7 @@ export default function Messages() {
       await sendMessage(activeConversation._id, text, url, type, replyingTo?._id || null);
       setReplyingTo(null);
     } catch {
-      setMessageText(text);
-      setMediaUrl(url);
-      setMediaType(type);
-    } finally {
-      setSending(false);
+      // Optimistic message is already removed by the store on failure
     }
   };
 
@@ -575,20 +571,13 @@ export default function Messages() {
                   />
                   <button
                     onClick={handleSend}
-                    disabled={(!messageText.trim() && !mediaUrl) || sending || uploading}
+                    disabled={(!messageText.trim() && !mediaUrl) || uploading}
                     className="btn-brand px-3 sm:px-4 py-2 sm:py-2.5 flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100"
                     title="Send message"
                   >
-                    {sending ? (
-                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                      </svg>
-                    ) : (
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
-                      </svg>
-                    )}
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
+                    </svg>
                   </button>
                 </div>
               </div>
