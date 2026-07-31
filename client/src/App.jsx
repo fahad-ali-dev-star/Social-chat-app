@@ -57,7 +57,11 @@ export default function App() {
     useMessageStore.getState().loadConversations();
 
     const backendUrl = import.meta.env.VITE_BACKEND_URL || "/";
-    socket = io(backendUrl, { withCredentials: true });
+    const token = localStorage.getItem("buzz_token");
+    socket = io(backendUrl, {
+      withCredentials: true,
+      auth: { token },
+    });
     window.__socketInstance = socket;
 
     socket.on("online_users", (onlineUserIds) => {

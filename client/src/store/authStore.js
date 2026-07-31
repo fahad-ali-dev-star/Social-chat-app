@@ -16,16 +16,19 @@ export const useAuthStore = create((set) => ({
 
   login: async (email, password) => {
     const { data } = await api.post("/auth/login", { email, password });
+    if (data.token) localStorage.setItem("buzz_token", data.token);
     set({ user: data.user });
   },
 
   register: async (payload) => {
     const { data } = await api.post("/auth/register", payload);
+    if (data.token) localStorage.setItem("buzz_token", data.token);
     set({ user: data.user });
   },
 
   logout: async () => {
     await api.post("/auth/logout");
+    localStorage.removeItem("buzz_token");
     set({ user: null });
   },
 }));

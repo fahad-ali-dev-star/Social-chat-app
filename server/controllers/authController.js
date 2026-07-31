@@ -52,6 +52,7 @@ export const register = async (req, res) => {
     res.cookie("token", token, cookieOptions);
 
     res.status(201).json({
+      token,
       user: { id: user._id, username: user.username, email: user.email, displayName: user.displayName, isPrivate: user.isPrivate, isVerified: user.isVerified, role: user.role, accountStatus: user.accountStatus },
     });
   } catch (err) {
@@ -79,6 +80,7 @@ export const login = async (req, res) => {
     res.cookie("token", token, cookieOptions);
 
     res.json({
+      token,
       user: { id: updatedUser._id, username: updatedUser.username, email: updatedUser.email, displayName: updatedUser.displayName, isPrivate: updatedUser.isPrivate, isVerified: updatedUser.isVerified, role: updatedUser.role, accountStatus: updatedUser.accountStatus },
     });
   } catch (err) {

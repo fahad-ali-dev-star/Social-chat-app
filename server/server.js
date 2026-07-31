@@ -48,7 +48,7 @@ io.use((socket, next) => {
       return next(new Error("Server authentication is not configured"));
     }
 
-    const token = getCookieValue(socket.handshake.headers.cookie, "token");
+    const token = getCookieValue(socket.handshake.headers.cookie, "token") || socket.handshake.auth?.token;
     if (!token) return next(new Error("Not authenticated"));
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
