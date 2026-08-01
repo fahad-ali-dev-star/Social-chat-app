@@ -104,6 +104,20 @@
     max-width: 100%;
     height: auto;
   }
+
+  /* Mobile smooth scrolling & performance optimizations */
+  article {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 350px;
+  }
+
+  @media (max-width: 768px) {
+    .glass, .glass-lg {
+      backdrop-filter: blur(8px) !important;
+      -webkit-backdrop-filter: blur(8px) !important;
+      transform: translateZ(0);
+    }
+  }
 }
 
 @layer components {

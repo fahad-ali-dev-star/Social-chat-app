@@ -253,11 +253,11 @@ export default function Navbar() {
                   >
                     {icon}
                     <span className="hidden lg:block">{label}</span>
-                    {badge > 0 && (
-                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-brand-500 text-white text-[10px] font-bold rounded-full px-1 animate-bounce-in">
-                        {badge > 9 ? "9+" : badge}
-                      </span>
-                    )}
+                {badge > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-extrabold rounded-full px-1 shadow-lg border border-surface-900 animate-bounce-in">
+                    {badge > 9 ? "9+" : badge}
+                  </span>
+                )}
                   </button>
 
                   {/* Notification Dropdown Drawer */}

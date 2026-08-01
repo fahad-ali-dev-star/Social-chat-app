@@ -235,6 +235,15 @@ export const sendMessage = async (req, res) => {
 
     const populated = await populateMessage(Message.findById(message._id));
 
+    const io = req.app.get("io");
+
+    // Emit to conversation room (so active chat viewers receive it live instantly)
+    io?.to(`conv_${conversationId}`).emit("new_message", {
+      message: populated,
+      conversationId,
+    });
+
+    // Emit to recipient's personal socket room for unread badges and toasts
     if (recipientId) {
       io?.to(recipientRoom).emit("new_message", {
         message: populated,

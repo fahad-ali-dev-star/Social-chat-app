@@ -336,7 +336,7 @@ export default function PostCard({ post, myUserId }) {
           if (post.mediaType === "video" || mediaList[0]?.match(/\.(mp4|webm|ogg)$/i)) {
             return (
               <div className="mt-3 rounded-xl overflow-hidden border border-white/5 bg-black">
-                <video src={mediaList[0]} controls className="max-h-96 w-full object-contain" />
+                <video src={mediaList[0]} controls className="max-h-[480px] w-full object-cover rounded-xl" />
               </div>
             );
           }
@@ -346,7 +346,8 @@ export default function PostCard({ post, myUserId }) {
               <img
                 src={mediaList[0]}
                 alt="Post media"
-                className="mt-3 rounded-xl max-h-96 object-cover w-full border border-white/5"
+                loading="lazy"
+                className="mt-3 rounded-xl max-h-[480px] object-cover w-full border border-white/5"
                 onError={(e) => { e.target.style.display = "none"; }}
               />
             );
@@ -357,7 +358,8 @@ export default function PostCard({ post, myUserId }) {
               <img
                 src={mediaList[activeMediaIdx || 0]}
                 alt="Post media"
-                className="max-h-96 object-cover w-full"
+                loading="lazy"
+                className="max-h-[480px] object-cover w-full"
               />
               {/* Previous button */}
               {(activeMediaIdx || 0) > 0 && (
