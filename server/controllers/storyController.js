@@ -1,5 +1,6 @@
 import Story from "../models/Story.js";
 import User from "../models/User.js";
+import Notification from "../models/Notification.js";
 import { cleanString } from "../middleware/validation.js";
 
 export const createStory = async (req, res) => {
@@ -50,7 +51,13 @@ export const getFeedStories = async (req, res) => {
       }
       const group = groupedMap.get(uId);
       const isViewedByMe = story.views.some((v) => v.user?._id?.toString() === req.userId || v.user?.toString() === req.userId);
-      group.stories.push({ ...story.toObject(), viewedByMe: isViewedByMe });
+      const isLikedByMe = (story.likes || []).some((id) => id.toString() === req.userId);
+      group.stories.push({
+        ...story.toObject(),
+        viewedByMe: isViewedByMe,
+        likedByMe: isLikedByMe,
+        likesCount: story.likes?.length || 0,
+      });
       if (!isViewedByMe) group.hasUnviewed = true;
     });
 
@@ -103,5 +110,36 @@ export const deleteStory = async (req, res) => {
     res.json({ message: "Story deleted" });
   } catch (err) {
     res.status(500).json({ message: "Failed to delete story" });
+  }
+};
+
+export const toggleLikeStory = async (req, res) => {
+  try {
+    const { storyId } = req.params;
+    const story = await Story.findById(storyId);
+    if (!story) return res.status(404).json({ message: "Story not found" });
+
+    const alreadyLiked = story.likes.some((id) => id.toString() === req.userId);
+
+    if (alreadyLiked) {
+      story.likes = story.likes.filter((id) => id.toString() !== req.userId);
+    } else {
+      story.likes.push(req.userId);
+      if (story.user.toString() !== req.userId) {
+        const notif = await Notification.create({
+          recipient: story.user,
+          sender: req.userId,
+          type: "like",
+        });
+        const populated = await notif.populate("sender", "username displayName avatarUrl");
+        const io = req.app.get("io");
+        io.to(story.user.toString()).emit("notification", populated);
+      }
+    }
+
+    await story.save();
+    res.json({ liked: !alreadyLiked, likesCount: story.likes.length });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to toggle story like" });
   }
 };

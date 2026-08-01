@@ -36,8 +36,13 @@ export default {
         "pulse-ring": "pulseRing 1.5s ease-out infinite",
         "spin-slow":  "spin 3s linear infinite",
         "heart-pop":  "heartPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "progress":   "progress 20s linear forwards",
       },
       keyframes: {
+        progress: {
+          "0%":   { width: "0%" },
+          "100%": { width: "100%" },
+        },
         fadeIn: {
           "0%":   { opacity: 0 },
           "100%": { opacity: 1 },

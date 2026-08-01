@@ -11,6 +11,7 @@ const storySchema = new mongoose.Schema(
         viewedAt: { type: Date, default: Date.now },
       },
     ],
+    likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     createdAt: { type: Date, default: Date.now, expires: 86400 }, // Expire after 24h
   },
   { timestamps: true }

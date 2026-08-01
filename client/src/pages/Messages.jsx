@@ -262,9 +262,11 @@ export default function Messages() {
   return (
     <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
       <h1 className="text-xl font-bold text-white mb-3 sm:mb-4">Messages</h1>
-      <div className="glass rounded-2xl overflow-hidden flex flex-col lg:flex-row" style={{ minHeight: "calc(100vh - 180px)" }}>
+      <div className="glass rounded-2xl overflow-hidden flex flex-col lg:flex-row" style={{ minHeight: "calc(100vh - 140px)" }}>
         {/* Conversations Sidebar */}
-        <div className="w-full lg:w-80 lg:flex-shrink-0 border-b lg:border-b-0 lg:border-r border-white/8 flex flex-col max-h-[40vh] lg:max-h-none">
+        <div className={`w-full lg:w-80 lg:flex-shrink-0 border-b lg:border-b-0 lg:border-r border-white/8 flex-col ${
+          activeConversation ? "hidden lg:flex" : "flex"
+        }`}>
           <div className="p-4 border-b border-white/8">
             <p className="text-sm font-semibold text-gray-400">Conversations</p>
           </div>
@@ -319,7 +321,7 @@ export default function Messages() {
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 flex flex-col min-h-[50vh]">
+        <div className={`flex-1 flex-col ${activeConversation ? "flex" : "hidden lg:flex"} min-h-[50vh]`}>
           {!activeConversation ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-10">
               <div className="text-5xl mb-4">💬</div>
@@ -331,15 +333,22 @@ export default function Messages() {
           ) : (
             <>
               {/* Chat Header */}
-              <div className="flex items-center gap-3 px-3 sm:px-5 py-3 sm:py-4 border-b border-white/8">
+              <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-3 sm:py-4 border-b border-white/8">
+                <button
+                  onClick={() => selectConversation(null)}
+                  className="lg:hidden p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/8 mr-1"
+                  title="Back to conversations"
+                >
+                  ←
+                </button>
                 {(() => {
                   const other = getOtherParticipant(activeConversation);
                   return (
                     <>
                       <Avatar src={other?.avatarUrl} name={other?.displayName} username={other?.username} size="md" />
-                      <div>
-                        <p className="text-sm font-semibold text-white">{other?.displayName || other?.username}</p>
-                        <p className="text-xs text-gray-500">@{other?.username}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-white truncate">{other?.displayName || other?.username}</p>
+                        <p className="text-xs text-gray-500 truncate">@{other?.username}</p>
                       </div>
                     </>
                   );

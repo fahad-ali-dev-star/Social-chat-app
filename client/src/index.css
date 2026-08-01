@@ -29,6 +29,11 @@
     transition: background-color 0.3s ease, color 0.3s ease;
   }
 
+  select option {
+    background-color: #10101a;
+    color: #f1f5f9;
+  }
+
   /* ─── Light Mode ─── */
   html.light-mode body {
     background-color: #f1f5f9;

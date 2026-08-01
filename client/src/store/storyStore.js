@@ -90,4 +90,58 @@ export const useStoryStore = create((set, get) => ({
       console.error("Failed to delete story", err);
     }
   },
+
+  toggleLikeStory: async (storyId) => {
+    // Optimistic update
+    set((state) => ({
+      storyGroups: state.storyGroups.map((group) => ({
+        ...group,
+        stories: group.stories.map((s) => {
+          if (s._id !== storyId) return s;
+          const liked = Boolean(s.likedByMe);
+          const currentCount = s.likesCount || 0;
+          return {
+            ...s,
+            likedByMe: !liked,
+            likesCount: Math.max(0, currentCount + (liked ? -1 : 1)),
+          };
+        }),
+      })),
+    }));
+
+    try {
+      const { data } = await api.post(`/stories/${storyId}/like`);
+      set((state) => ({
+        storyGroups: state.storyGroups.map((group) => ({
+          ...group,
+          stories: group.stories.map((s) => {
+            if (s._id !== storyId) return s;
+            return {
+              ...s,
+              likedByMe: Boolean(data.liked),
+              likesCount: Number(data.likesCount) || 0,
+            };
+          }),
+        })),
+      }));
+    } catch (err) {
+      console.error("Failed to toggle story like", err);
+      // Revert on error
+      set((state) => ({
+        storyGroups: state.storyGroups.map((group) => ({
+          ...group,
+          stories: group.stories.map((s) => {
+            if (s._id !== storyId) return s;
+            const liked = Boolean(s.likedByMe);
+            const currentCount = s.likesCount || 0;
+            return {
+              ...s,
+              likedByMe: !liked,
+              likesCount: Math.max(0, currentCount + (liked ? -1 : 1)),
+            };
+          }),
+        })),
+      }));
+    }
+  },
 }));
