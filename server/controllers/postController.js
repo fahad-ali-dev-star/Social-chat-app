@@ -159,10 +159,36 @@ export const deletePost = async (req, res) => {
     await Notification.deleteMany({ post: post._id });
 
     // Remove uploaded media after the database relationships are cleaned up.
-    // New posts store Cloudinary public IDs; legacy posts fall back to local-file
-    // cleanup only, avoiding unsafe guesses against Cloudinary URLs.
-    if (hasCloudinary && Array.isArray(post.mediaPublicIds) && post.mediaPublicIds.length) {
-      for (const publicId of post.mediaPublicIds) {
+    // Handles mediaPublicIds as well as extracting Cloudinary public IDs directly from mediaUrls
+    if (hasCloudinary) {
+      const publicIdsToDelete = new Set(
+        Array.isArray(post.mediaPublicIds) ? post.mediaPublicIds.filter(Boolean) : []
+      );
+
+      // Extract public_id from Cloudinary URLs if mediaPublicIds is empty or incomplete
+      if (Array.isArray(post.mediaUrls)) {
+        for (const mediaUrl of post.mediaUrls) {
+          if (!mediaUrl || typeof mediaUrl !== "string") continue;
+          if (mediaUrl.includes("res.cloudinary.com")) {
+            try {
+              // Cloudinary URL format: https://res.cloudinary.com/<cloud_name>/<resource_type>/upload/v<version>/<public_id>.<ext>
+              const parts = mediaUrl.split("/upload/");
+              if (parts.length > 1) {
+                const pathAfterUpload = parts[1];
+                // Remove version tag (v12345678/) if present
+                const withoutVersion = pathAfterUpload.replace(/^v\d+\//, "");
+                // Remove file extension
+                const publicId = withoutVersion.substring(0, withoutVersion.lastIndexOf(".")) || withoutVersion;
+                if (publicId) publicIdsToDelete.add(publicId);
+              }
+            } catch (e) {
+              console.error("Failed to parse Cloudinary URL public_id:", mediaUrl, e);
+            }
+          }
+        }
+      }
+
+      for (const publicId of publicIdsToDelete) {
         try {
           const resourceType = post.mediaType === "video" ? "video" : "image";
           await cloudinary.uploader.destroy(publicId, {
