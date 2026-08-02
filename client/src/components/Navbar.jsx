@@ -78,12 +78,23 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [showNotifPrompt, setShowNotifPrompt] = useState(false);
   const menuRef = useRef(null);
   const notifRef = useRef(null);
   const themeRef = useRef(null);
   const searchRef = useRef(null);
   const navigate = useNavigate();
   const debounceRef = useRef(null);
+
+  // Show one-time prompt if notifications not yet allowed
+  useEffect(() => {
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "default") {
+      // Show prompt after 2 seconds
+      const t = setTimeout(() => setShowNotifPrompt(true), 2000);
+      return () => clearTimeout(t);
+    }
+  }, []);
 
   // Handle incoming message toast popups
   useEffect(() => {
@@ -496,6 +507,38 @@ export default function Navbar() {
           >
             ✕
           </button>
+        </div>
+      )}
+
+      {/* Notification Permission Request Banner */}
+      {showNotifPrompt && (
+        <div className="fixed bottom-5 left-5 z-50 glass-lg border border-red-500/40 p-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-slide-up max-w-sm">
+          <div className="w-10 h-10 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center text-xl flex-shrink-0">
+            🔔
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold text-red-400">Enable Push Notifications</p>
+            <p className="text-xs text-gray-300">Get instant alerts on mobile & desktop when someone messages or likes your post!</p>
+            <div className="flex items-center gap-2 mt-2">
+              <button
+                onClick={async () => {
+                  if ("Notification" in window) {
+                    await Notification.requestPermission();
+                  }
+                  setShowNotifPrompt(false);
+                }}
+                className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white font-medium text-xs rounded-lg transition-all"
+              >
+                Allow
+              </button>
+              <button
+                onClick={() => setShowNotifPrompt(false)}
+                className="px-3 py-1 bg-white/10 hover:bg-white/15 text-gray-300 text-xs rounded-lg transition-all"
+              >
+                Later
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </header>

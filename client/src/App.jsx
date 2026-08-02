@@ -13,7 +13,7 @@ import Admin from "./pages/Admin";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Navbar from "./components/Navbar";
 import { useAuthStore } from "./store/authStore";
-import { useNotificationStore } from "./store/notificationStore";
+import { useNotificationStore, showPushNotification, requestNotificationPermission } from "./store/notificationStore";
 import { useMessageStore } from "./store/messageStore";
 import { usePostStore } from "./store/postStore";
 
@@ -35,21 +35,32 @@ export default function App() {
   const user = useAuthStore((s) => s.user);
   const addNotification = useNotificationStore((s) => s.addNotification);
   const fetchUnreadCount = useNotificationStore((s) => s.fetchUnreadCount);
+  const unreadNotifCount = useNotificationStore((s) => s.unreadCount);
   const addIncomingMessage = useMessageStore((s) => s.addIncomingMessage);
   const markDelivered = useMessageStore((s) => s.markDelivered);
   const markRead = useMessageStore((s) => s.markRead);
   const updateIncomingMessage = useMessageStore((s) => s.updateIncomingMessage);
   const deleteIncomingMessage = useMessageStore((s) => s.deleteIncomingMessage);
   const updateReaction = useMessageStore((s) => s.updateReaction);
+  const messageUnreadCount = useMessageStore((s) => s.unreadCount);
   const loadBookmarkedIds = usePostStore((s) => s.loadBookmarkedIds);
 
   useEffect(() => {
     fetchMe();
   }, []);
 
+  // Update document title with unread badge on ALL pages
+  useEffect(() => {
+    const total = unreadNotifCount + messageUnreadCount;
+    document.title = total > 0 ? `(${total > 99 ? "99+" : total}) Buzz Chat` : "Buzz Chat";
+  }, [unreadNotifCount, messageUnreadCount]);
+
   // Connect socket and listen for real-time notifications + messages
   useEffect(() => {
     if (!user) return;
+
+    // Request notification permission as soon as user logs in
+    requestNotificationPermission();
 
     // Fetch initial unread count + bookmarks + conversations
     fetchUnreadCount();
@@ -78,10 +89,35 @@ export default function App() {
 
     socket.on("notification", (notif) => {
       addNotification(notif);
+
+      // Show native push notification on every page
+      const senderName = notif.sender?.displayName || notif.sender?.username || "Someone";
+      let body = "";
+      if (notif.type === "like") body = `${senderName} liked your post ❤️`;
+      else if (notif.type === "comment") body = `${senderName} commented on your post 💬`;
+      else if (notif.type === "comment_reply") body = `${senderName} replied to your comment 💬`;
+      else if (notif.type === "follow") body = `${senderName} started following you 👤`;
+      else if (notif.type === "mention") body = `${senderName} mentioned you 📢`;
+      else body = `New notification from ${senderName}`;
+
+      showPushNotification({
+        title: "Buzz Chat 🔔",
+        body,
+        tag: `notif-${notif._id || Date.now()}`,
+      });
     });
 
     socket.on("new_message", ({ message, conversationId }) => {
       addIncomingMessage(message, conversationId);
+
+      // Show native push notification for new message
+      const senderName = message.sender?.displayName || message.sender?.username || "Someone";
+      const msgBody = message.body || (message.mediaType === "audio" ? "🎙️ Voice note" : "📷 Photo");
+      showPushNotification({
+        title: `💬 ${senderName}`,
+        body: msgBody,
+        tag: `msg-${conversationId}`,
+      });
 
       const event = new CustomEvent("new_message_toast", {
         detail: { message, conversationId },
@@ -100,6 +136,7 @@ export default function App() {
       socket = null;
     };
   }, [user?.id]);
+
 
   return (
     <BrowserRouter>
