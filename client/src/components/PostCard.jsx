@@ -145,8 +145,11 @@ export default function PostCard({ post, myUserId }) {
     finally { setDmSending(null); }
   };
 
+  const authUser = useAuthStore((s) => s.user);
+  const currentUserId = String(myUserId || authUser?.id || authUser?._id || "");
+  const postAuthorId = String(post.author?._id || post.author || "");
   const isBookmarked = bookmarkedIds.has(post._id);
-  const isOwner = myUserId && post.author?._id === myUserId;
+  const isOwner = Boolean(currentUserId && postAuthorId && currentUserId === postAuthorId);
   const PREVIEW_LEN = 200;
   const longContent = post.content?.length > PREVIEW_LEN;
 
