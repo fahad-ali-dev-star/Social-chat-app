@@ -10,6 +10,7 @@ import {
   SafeAreaView,
   StatusBar,
   RefreshControl,
+  Image,
 } from "react-native";
 import { useAuthStore } from "../authStore";
 import api from "../api";
@@ -219,9 +220,18 @@ export default function App() {
                   </Text>
                 </View>
                 <View>
-                  <Text style={styles.authorName}>
-                    {item.author?.displayName || item.author?.username}
-                  </Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                    <Text style={styles.authorName}>
+                      {item.author?.displayName || item.author?.username}
+                    </Text>
+                    {item.author?.isVerified && (
+                      <Image 
+                        source={require("@/assets/images/5c6a9983d0c9eef8b3912a451cc8a27d.png")} 
+                        style={{ width: 16, height: 16 }} 
+                        resizeMode="contain" 
+                      />
+                    )}
+                  </View>
                   <Text style={styles.username}>@{item.author?.username}</Text>
                 </View>
               </View>

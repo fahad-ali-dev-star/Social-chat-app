@@ -7,6 +7,7 @@ import Avatar from "../components/Avatar";
 import PostCard from "../components/PostCard";
 import UserListModal from "../components/UserListModal";
 import ReportButton from "../components/ReportButton";
+import VerifiedTick from "../assets/images/verified-tick.png";
 
 export default function Profile() {
   const { username } = useParams();
@@ -335,9 +336,7 @@ export default function Profile() {
                   {profile.displayName || profile.username}
                 </h1>
                 {profile.isVerified === true && (
-                  <span className="text-brand-400 text-base" title="Verified Creator">
-                    ☑️
-                  </span>
+                  <img src={VerifiedTick} alt="Verified Creator" title="Verified Creator" className="w-5 h-5 object-contain" />
                 )}
               </div>
               <p className="text-sm text-gray-500">@{profile.username}</p>

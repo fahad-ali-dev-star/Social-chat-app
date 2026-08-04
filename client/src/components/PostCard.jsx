@@ -7,6 +7,7 @@ import Avatar from "./Avatar";
 import CommentPanel from "./CommentPanel";
 import api from "../api/client";
 import ReportButton from "./ReportButton";
+import VerifiedTick from "../assets/images/verified-tick.png";
 
 function formatDate(iso) {
   const d = new Date(iso);
@@ -216,9 +217,14 @@ export default function PostCard({ post, myUserId }) {
             className="group-hover:scale-105 transition-transform"
           />
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-white truncate group-hover:text-brand-400 transition-colors">
-              {post.author?.displayName || post.author?.username}
-            </p>
+            <div className="flex items-center gap-1">
+              <p className="text-sm font-semibold text-white truncate group-hover:text-brand-400 transition-colors">
+                {post.author?.displayName || post.author?.username}
+              </p>
+              {post.author?.isVerified && (
+                <img src={VerifiedTick} alt="Verified Creator" title="Verified Creator" className="w-3.5 h-3.5 object-contain" />
+              )}
+            </div>
             <p className="text-xs text-gray-500">
               @{post.author?.username} · {formatDate(post.createdAt)}
               {post.isEdited && <span className="ml-1 text-[10px] text-gray-600">(edited)</span>}
