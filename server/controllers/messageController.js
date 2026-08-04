@@ -12,10 +12,10 @@ const emitToConversation = (req, conversationId, event, payload) => {
 
 const populateMessage = (query) =>
   query
-    .populate("sender", "username displayName avatarUrl")
+    .populate("sender", "username displayName avatarUrl isVerified")
     .populate({
       path: "replyTo",
-      populate: { path: "sender", select: "username displayName avatarUrl" },
+      populate: { path: "sender", select: "username displayName avatarUrl isVerified" },
     });
 
 export const getConversations = async (req, res) => {
@@ -55,8 +55,8 @@ export const getConversations = async (req, res) => {
     ]);
 
     const populated = await Conversation.populate(conversations, [
-      { path: "participants", select: "username displayName avatarUrl" },
-      { path: "lastSender", select: "username displayName" },
+      { path: "participants", select: "username displayName avatarUrl isVerified" },
+      { path: "lastSender", select: "username displayName isVerified" },
     ]);
 
     res.json({ conversations: populated });

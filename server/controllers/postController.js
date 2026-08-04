@@ -42,7 +42,7 @@ export const createPost = async (req, res) => {
       hashtags: [...new Set(hashtagMatches)],
       mentions: mentionedUsers.map((u) => u._id),
     });
-    const populated = await post.populate("author", "username displayName avatarUrl");
+    const populated = await post.populate("author", "username displayName avatarUrl isVerified");
     res.status(201).json({ post: populated });
   } catch (err) {
     console.error("Failed to create post:", err);
@@ -91,7 +91,7 @@ export const getFeed = async (req, res) => {
       .sort({ isPinned: -1, createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .populate("author", "username displayName avatarUrl");
+      .populate("author", "username displayName avatarUrl isVerified");
 
     const currentUserId = String(req.userId);
     const serializedPosts = posts.map((post) => {
@@ -134,7 +134,7 @@ export const toggleLike = async (req, res) => {
           type: "like",
           post: post._id,
         });
-        const populated = await notif.populate("sender", "username displayName avatarUrl");
+        const populated = await notif.populate("sender", "username displayName avatarUrl isVerified");
         const io = req.app.get("io");
         io.to(post.author.toString()).emit("notification", populated);
       }
@@ -232,8 +232,8 @@ export const getComments = async (req, res) => {
     }
     const comments = await Comment.find({ post: req.params.id })
       .sort({ createdAt: 1 })
-      .populate("author", "username displayName avatarUrl")
-      .populate("mentions", "username displayName avatarUrl");
+      .populate("author", "username displayName avatarUrl isVerified")
+      .populate("mentions", "username displayName avatarUrl isVerified");
     const currentUserId = String(req.userId);
     const serialized = comments.map((comment) => ({
       ...comment.toObject(),
@@ -264,8 +264,8 @@ export const addComment = async (req, res) => {
     const mentionedUsers = mentionNames.length ? await User.find({ username: { $in: mentionNames } }).select("_id username") : [];
     const comment = await Comment.create({ post: post._id, author: req.userId, content: text, parentComment: parent?._id || null, mentions: mentionedUsers.map((u) => u._id) });
     const populated = await comment.populate([
-      { path: "author", select: "username displayName avatarUrl" },
-      { path: "mentions", select: "username displayName avatarUrl" },
+      { path: "author", select: "username displayName avatarUrl isVerified" },
+      { path: "mentions", select: "username displayName avatarUrl isVerified" },
     ]);
     post.commentCount = (post.commentCount || 0) + 1;
     await post.save();
@@ -277,7 +277,7 @@ export const addComment = async (req, res) => {
     for (const recipient of recipients) {
       const type = parent && recipient === parent.author.toString() ? "comment_reply" : mentionedUsers.some((u) => u._id.toString() === recipient) ? "mention" : "comment";
       const notif = await Notification.create({ recipient, sender: req.userId, type, post: post._id });
-      const populatedNotif = await notif.populate("sender", "username displayName avatarUrl");
+      const populatedNotif = await notif.populate("sender", "username displayName avatarUrl isVerified");
       req.app.get("io").to(recipient).emit("notification", populatedNotif);
     }
     res.status(201).json({ comment: populated, commentCount: post.commentCount });
@@ -320,7 +320,7 @@ export const searchPosts = async (req, res) => {
     })
       .sort({ createdAt: -1 })
       .limit(20)
-      .populate("author", "username displayName avatarUrl");
+      .populate("author", "username displayName avatarUrl isVerified");
 
     res.json({ posts });
   } catch (err) {
@@ -351,7 +351,7 @@ export const updatePost = async (req, res) => {
     post.isEdited = true;
     await post.save();
 
-    const populated = await post.populate("author", "username displayName avatarUrl");
+    const populated = await post.populate("author", "username displayName avatarUrl isVerified");
     res.json({ post: populated });
   } catch (err) {
     console.error("Failed to update post:", err);

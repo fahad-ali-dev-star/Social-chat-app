@@ -7,7 +7,7 @@ export const getProfile = async (req, res) => {
   try {
     const user = await User.findOne({ username: req.params.username })
       .select("username displayName bio avatarUrl bannerUrl isVerified isPrivate followers following createdAt")
-      .populate("followers following", "username displayName avatarUrl");
+      .populate("followers following", "username displayName avatarUrl isVerified");
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const viewer = await User.findById(req.userId).select("following blockedUsers blockedBy");
@@ -65,7 +65,7 @@ export const toggleFollow = async (req, res) => {
       currentUser.sentFollowRequests.addToSet(targetUser._id);
       await Promise.all([currentUser.save(), targetUser.save()]);
       const notif = await Notification.create({ recipient: targetUser._id, sender: currentUser._id, type: "follow_request" });
-      const populated = await notif.populate("sender", "username displayName avatarUrl");
+      const populated = await notif.populate("sender", "username displayName avatarUrl isVerified");
       req.app.get("io").to(targetUser._id.toString()).emit("notification", populated);
       return res.json({ following: false, requested: true, followersCount: targetUser.followers.length });
     }
@@ -74,7 +74,7 @@ export const toggleFollow = async (req, res) => {
     targetUser.followers.addToSet(currentUser._id);
     await Promise.all([currentUser.save(), targetUser.save()]);
     const notif = await Notification.create({ recipient: targetUser._id, sender: currentUser._id, type: "follow" });
-    const populated = await notif.populate("sender", "username displayName avatarUrl");
+    const populated = await notif.populate("sender", "username displayName avatarUrl isVerified");
     req.app.get("io").to(targetUser._id.toString()).emit("notification", populated);
     return res.json({ following: true, requested: false, followersCount: targetUser.followers.length });
   } catch (err) {
@@ -189,7 +189,7 @@ export const getBookmarks = async (req, res) => {
   try {
     const user = await User.findById(req.userId).populate({
       path: "bookmarks",
-      populate: { path: "author", select: "username displayName avatarUrl" },
+      populate: { path: "author", select: "username displayName avatarUrl isVerified" },
     });
 
     res.json({ posts: user.bookmarks || [] });

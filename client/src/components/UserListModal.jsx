@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import Avatar from "./Avatar";
+import VerifiedBadge from "./VerifiedBadge";
 
 export default function UserListModal({ title, users, isOpen, onClose }) {
   if (!isOpen) return null;
@@ -39,9 +40,12 @@ export default function UserListModal({ title, users, isOpen, onClose }) {
                     size="md"
                   />
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-white truncate group-hover:text-brand-400 transition-colors">
-                      {u.displayName || u.username}
-                    </p>
+                    <div className="flex items-center gap-1 min-w-0">
+                      <p className="text-sm font-semibold text-white truncate group-hover:text-brand-400 transition-colors">
+                        {u.displayName || u.username}
+                      </p>
+                      {u.isVerified && <VerifiedBadge size="xs" />}
+                    </div>
                     <p className="text-xs text-gray-500 truncate">@{u.username}</p>
                   </div>
                 </div>

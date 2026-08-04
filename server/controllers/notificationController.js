@@ -5,7 +5,7 @@ export const getNotifications = async (req, res) => {
     const notifications = await Notification.find({ recipient: req.userId })
       .sort({ createdAt: -1 })
       .limit(50)
-      .populate("sender", "username displayName avatarUrl")
+      .populate("sender", "username displayName avatarUrl isVerified")
       .populate("post", "content");
     res.json({ notifications });
   } catch (err) {

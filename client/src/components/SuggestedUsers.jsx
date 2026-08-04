@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/client";
 import Avatar from "./Avatar";
+import VerifiedBadge from "./VerifiedBadge";
 
 export default function SuggestedUsers() {
   const [users, setUsers] = useState([]);
@@ -61,9 +62,12 @@ export default function SuggestedUsers() {
               </Link>
               <div className="flex-1 min-w-0">
                 <Link to={`/profile/${u.username}`}>
-                  <p className="text-sm font-semibold text-gray-200 truncate hover:text-brand-400 transition-colors leading-tight">
-                    {u.displayName || u.username}
-                  </p>
+                  <div className="flex items-center gap-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-200 truncate hover:text-brand-400 transition-colors leading-tight">
+                      {u.displayName || u.username}
+                    </p>
+                    {u.isVerified && <VerifiedBadge size="xs" />}
+                  </div>
                   <p className="text-xs text-gray-500 truncate">@{u.username}</p>
                 </Link>
               </div>

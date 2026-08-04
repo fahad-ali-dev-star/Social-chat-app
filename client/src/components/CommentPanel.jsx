@@ -3,6 +3,7 @@ import api from "../api/client";
 import { useAuthStore } from "../store/authStore";
 import Avatar from "./Avatar";
 import ReportButton from "./ReportButton";
+import VerifiedBadge from "./VerifiedBadge";
 
 function formatDate(iso) {
   const d = new Date(iso);
@@ -89,7 +90,7 @@ export default function CommentPanel({ postId, onCommentAdded }) {
                   <Avatar src={c.author?.avatarUrl} name={c.author?.displayName} username={c.author?.username} size="xs" />
                   <div className="flex-1 bg-white/4 rounded-xl px-3 py-2">
                     <div className="flex items-baseline gap-2">
-                      <span className="text-xs font-semibold text-gray-300">{c.author?.displayName || c.author?.username}</span>
+                      <span className="text-xs font-semibold text-gray-300">{c.author?.displayName || c.author?.username}{c.author?.isVerified && <VerifiedBadge size="xs" />}</span>
                       <span className="text-[10px] text-gray-600">{formatDate(c.createdAt)}</span>
                     </div>
                     <p className="text-xs text-gray-300 mt-0.5 leading-relaxed whitespace-pre-wrap">{c.content}</p>

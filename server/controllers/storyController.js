@@ -14,7 +14,7 @@ export const createStory = async (req, res) => {
       caption: cleanString(caption, { max: 500 }),
     });
 
-    const populated = await story.populate("user", "username displayName avatarUrl");
+    const populated = await story.populate("user", "username displayName avatarUrl isVerified");
     res.status(201).json({ story: populated });
   } catch (err) {
     res.status(500).json({ message: "Failed to create story" });
@@ -35,8 +35,8 @@ export const getFeedStories = async (req, res) => {
       createdAt: { $gte: twentyFourHoursAgo },
     })
       .sort({ createdAt: 1 })
-      .populate("user", "username displayName avatarUrl")
-      .populate("views.user", "username displayName avatarUrl");
+      .populate("user", "username displayName avatarUrl isVerified")
+      .populate("views.user", "username displayName avatarUrl isVerified");
 
     // Group stories by user
     const groupedMap = new Map();
@@ -131,7 +131,7 @@ export const toggleLikeStory = async (req, res) => {
           sender: req.userId,
           type: "like",
         });
-        const populated = await notif.populate("sender", "username displayName avatarUrl");
+        const populated = await notif.populate("sender", "username displayName avatarUrl isVerified");
         const io = req.app.get("io");
         io.to(story.user.toString()).emit("notification", populated);
       }

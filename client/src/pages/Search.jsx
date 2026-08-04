@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import api from "../api/client";
 import PostCard from "../components/PostCard";
 import Avatar from "../components/Avatar";
+import VerifiedBadge from "../components/VerifiedBadge";
 import { useAuthStore } from "../store/authStore";
 
 const SearchIcon = () => (
@@ -136,7 +137,7 @@ export default function Search() {
                   >
                     <Avatar src={u.avatarUrl} name={u.displayName} username={u.username} size="lg" />
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-white">{u.displayName || u.username}</p>
+                      <p className="font-semibold text-white">{u.displayName || u.username}{u.isVerified && <VerifiedBadge size="xs" />}</p>
                       <p className="text-sm text-gray-500">@{u.username}</p>
                       {u.bio && <p className="text-xs text-gray-400 mt-1 truncate">{u.bio}</p>}
                     </div>

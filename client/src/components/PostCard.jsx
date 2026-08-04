@@ -7,7 +7,7 @@ import Avatar from "./Avatar";
 import CommentPanel from "./CommentPanel";
 import api from "../api/client";
 import ReportButton from "./ReportButton";
-import VerifiedTick from "../assets/images/verified-tick.png";
+import VerifiedBadge from "./VerifiedBadge";
 
 function formatDate(iso) {
   const d = new Date(iso);
@@ -222,7 +222,7 @@ export default function PostCard({ post, myUserId }) {
                 {post.author?.displayName || post.author?.username}
               </p>
               {post.author?.isVerified && (
-                <img src={VerifiedTick} alt="Verified Creator" title="Verified Creator" className="w-3.5 h-3.5 object-contain" />
+                <VerifiedBadge size="xs" />
               )}
             </div>
             <p className="text-xs text-gray-500">
