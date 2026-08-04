@@ -29,12 +29,6 @@
     "ios": "expo start --ios",
     "web": "expo start --web"
   },
-  "resolutions": {
-    "metro": "0.76.9"
-  },
-  "overrides": {
-    "metro": "0.76.9"
-  },
   "private": true
 }
 

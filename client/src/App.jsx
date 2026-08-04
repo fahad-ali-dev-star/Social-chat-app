@@ -79,6 +79,12 @@ export default function App() {
     });
     window.__socketInstance = socket;
 
+    // Interval timer to poll unread counts as fallback
+    const pollInterval = setInterval(() => {
+      fetchUnreadCount();
+      useMessageStore.getState().loadConversations();
+    }, 10000);
+
     socket.on("online_users", (onlineUserIds) => {
       window.dispatchEvent(new CustomEvent("online_users_update", { detail: onlineUserIds }));
     });
@@ -89,6 +95,7 @@ export default function App() {
 
     socket.on("notification", (notif) => {
       addNotification(notif);
+      fetchUnreadCount();
 
       // Show native push notification on every page
       const senderName = notif.sender?.displayName || notif.sender?.username || "Someone";
@@ -105,6 +112,9 @@ export default function App() {
         body,
         tag: `notif-${notif._id || Date.now()}`,
       });
+
+      // Dispatch event for real-time in-app toast notification banner on any page
+      window.dispatchEvent(new CustomEvent("new_notification_toast", { detail: notif }));
     });
 
     socket.on("new_message", ({ message, conversationId }) => {
@@ -132,6 +142,7 @@ export default function App() {
     socket.on("message_reaction", (payload) => updateReaction(payload));
 
     return () => {
+      clearInterval(pollInterval);
       socket?.disconnect();
       socket = null;
     };

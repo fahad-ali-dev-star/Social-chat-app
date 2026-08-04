@@ -96,15 +96,40 @@ export default function Navbar() {
     }
   }, []);
 
-  // Handle incoming message toast popups
+  // Handle incoming message & notification toast popups
   useEffect(() => {
-    const handleToast = (e) => {
+    const handleMessageToast = (e) => {
       const { message, conversationId } = e.detail;
-      setToastMessage({ message, conversationId });
+      setToastMessage({ message, conversationId, type: "message" });
       setTimeout(() => setToastMessage(null), 5000);
     };
-    window.addEventListener("new_message_toast", handleToast);
-    return () => window.removeEventListener("new_message_toast", handleToast);
+    const handleNotifToast = (e) => {
+      const notif = e.detail;
+      const senderName = notif.sender?.displayName || notif.sender?.username || "Someone";
+      let body = "";
+      if (notif.type === "like") body = `${senderName} liked your post ❤️`;
+      else if (notif.type === "comment") body = `${senderName} commented on your post 💬`;
+      else if (notif.type === "comment_reply") body = `${senderName} replied to your comment 💬`;
+      else if (notif.type === "follow") body = `${senderName} started following you 👤`;
+      else if (notif.type === "mention") body = `${senderName} mentioned you 📢`;
+      else body = `New notification from ${senderName}`;
+
+      setToastMessage({
+        message: {
+          sender: notif.sender,
+          body,
+        },
+        type: "notification",
+      });
+      setTimeout(() => setToastMessage(null), 5000);
+    };
+
+    window.addEventListener("new_message_toast", handleMessageToast);
+    window.addEventListener("new_notification_toast", handleNotifToast);
+    return () => {
+      window.removeEventListener("new_message_toast", handleMessageToast);
+      window.removeEventListener("new_notification_toast", handleNotifToast);
+    };
   }, []);
 
   // Close menu & notifications on outside click
@@ -479,20 +504,23 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Floating Message Toast Popup */}
+      {/* Floating Notification / Message Toast Popup */}
       {toastMessage && (
         <div
           onClick={() => {
-            navigate("/messages");
+            if (toastMessage.type === "notification") navigate("/notifications");
+            else navigate("/messages");
             setToastMessage(null);
           }}
           className="fixed bottom-5 right-5 z-50 glass-lg border border-brand-500/40 p-4 rounded-2xl shadow-2xl flex items-center gap-3 cursor-pointer hover:border-brand-400 transition-all animate-slide-up max-w-xs"
         >
           <div className="w-10 h-10 rounded-full bg-brand-600 flex items-center justify-center text-white font-bold flex-shrink-0">
-            💬
+            {toastMessage.type === "notification" ? "🔔" : "💬"}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-brand-400">New Message</p>
+            <p className="text-xs font-semibold text-brand-400">
+              {toastMessage.type === "notification" ? "New Notification" : "New Message"}
+            </p>
             <p className="text-sm font-medium text-white truncate">
               {toastMessage.message.sender?.displayName || toastMessage.message.sender?.username || "Someone"}
             </p>

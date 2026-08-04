@@ -15,6 +15,8 @@ import {
 import { useAuthStore } from "../authStore";
 import api from "../api";
 
+import MobileHeader from "../components/MobileHeader";
+
 export default function App() {
   const { user, loading, login, logout, fetchMe } = useAuthStore();
   const [emailOrUsername, setEmailOrUsername] = useState("");
@@ -161,13 +163,8 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.logoTextSmall}>🐝 Buzz Chat</Text>
-        <TouchableOpacity onPress={logout} style={styles.btnLogout}>
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Mobile Header with Logo, Msg Counter, Notification Red Dot & Real-time Alerts */}
+      <MobileHeader />
 
       {/* Create Post Box */}
       <View style={styles.createBox}>
