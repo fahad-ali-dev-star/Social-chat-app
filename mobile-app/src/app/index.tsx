@@ -15,14 +15,14 @@ import { useAuthStore } from "../authStore";
 import api from "../api";
 
 export default function App() {
-  const { user, login, logout, fetchMe } = useAuthStore();
+  const { user, loading, login, logout, fetchMe } = useAuthStore();
   const [emailOrUsername, setEmailOrUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
   // Feed State
-  const [posts, setPosts] = useState([]);
+  const [posts, setPosts] = useState<any[]>([]);
   const [feedLoading, setFeedLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [newPostContent, setNewPostContent] = useState("");
@@ -31,6 +31,17 @@ export default function App() {
   useEffect(() => {
     fetchMe();
   }, []);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
+        <View style={styles.centerLoading}>
+          <ActivityIndicator size="large" color="#6366f1" />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   useEffect(() => {
     if (user) {
@@ -81,9 +92,9 @@ export default function App() {
     }
   };
 
-  const handleToggleLike = async (postId) => {
+  const handleToggleLike = async (postId: string) => {
     setPosts((prev) =>
-      prev.map((p) =>
+      prev.map((p: any) =>
         p._id === postId
           ? {
               ...p,
