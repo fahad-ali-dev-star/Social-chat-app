@@ -3,6 +3,12 @@
     "name": "social-app",
     "slug": "social-app",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/0458a781-f4e3-4181-8f40-73db17588cc3"
+    },
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mobileapp",
