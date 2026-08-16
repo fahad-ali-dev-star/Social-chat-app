@@ -11,6 +11,8 @@ const postSchema = new mongoose.Schema(
     mediaUrls: [{ type: String }],
     mediaPublicIds: [{ type: String }],
     mediaType: { type: String, enum: ["image", "video", ""], default: "image" },
+    mediaFit: { type: String, enum: ["cover", "contain"], default: "cover" },
+
     isPinned: { type: Boolean, default: false },
     isEdited: { type: Boolean, default: false },
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],

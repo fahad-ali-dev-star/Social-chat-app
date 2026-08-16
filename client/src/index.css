@@ -222,4 +222,11 @@
   .hover\:bg-white\/6:hover  { background-color: rgba(255,255,255,0.06); }
   .bg-white\/6  { background-color: rgba(255,255,255,0.06); }
   .text-balance { text-wrap: balance; }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }

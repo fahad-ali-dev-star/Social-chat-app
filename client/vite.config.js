@@ -128,6 +128,14 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": "http://localhost:5000",
+      // Forward Socket.IO WebSocket traffic to the backend.
+      // Without this, Vite intercepts the upgrade handshake and Socket.IO
+      // never gets a real-time connection in development.
+      "/socket.io": {
+        target: "http://localhost:5000",
+        ws: true,
+        changeOrigin: true,
+      },
     },
   },
   build: {

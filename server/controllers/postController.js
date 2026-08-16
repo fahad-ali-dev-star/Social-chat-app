@@ -16,6 +16,7 @@ export const createPost = async (req, res) => {
       mediaPublicIds,
       mediaType,
       visibility = "public",
+      mediaFit = "cover",
     } = req.body;
     const finalMediaUrls = mediaUrls && mediaUrls.length > 0 ? mediaUrls : mediaUrl ? [mediaUrl] : [];
     const finalMediaPublicIds = Array.isArray(mediaPublicIds)
@@ -41,6 +42,7 @@ export const createPost = async (req, res) => {
       visibility,
       hashtags: [...new Set(hashtagMatches)],
       mentions: mentionedUsers.map((u) => u._id),
+      mediaFit,
     });
     const populated = await post.populate("author", "username displayName avatarUrl isVerified");
     res.status(201).json({ post: populated });

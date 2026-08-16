@@ -31,6 +31,10 @@ export default function CreatePostBox() {
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
 
+  // Custom media fit and carousel preview state
+  const [mediaFit, setMediaFit] = useState("cover");
+  const [activePreviewIdx, setActivePreviewIdx] = useState(0);
+
   const remaining = MAX_CHARS - content.length;
   const canPost = (content.trim().length > 0 || mediaUrls.length > 0) && remaining >= 0 && !uploading;
 
@@ -53,7 +57,12 @@ export default function CreatePostBox() {
         uploadedUrls.push(data.url);
       }
 
-      setMediaUrls((prev) => [...prev, ...uploadedUrls]);
+      setMediaUrls((prev) => {
+        const nextList = [...prev, ...uploadedUrls];
+        // Focus on the first newly added image
+        setActivePreviewIdx(prev.length);
+        return nextList;
+      });
       setMediaType(detectedType);
     } catch (err) {
       console.error("Upload failed", err);
@@ -68,10 +77,12 @@ export default function CreatePostBox() {
     if (!canPost || loading) return;
     setLoading(true);
     try {
-      await createPost(content.trim(), mediaUrls[0] || "", mediaUrls, mediaType, visibility);
+      await createPost(content.trim(), mediaUrls[0] || "", mediaUrls, mediaType, visibility, mediaFit);
       setContent("");
       setMediaUrls([]);
       setMediaType("image");
+      setMediaFit("cover");
+      setActivePreviewIdx(0);
       setFocused(false);
     } catch (err) {
       console.error("Failed to create post", err);
@@ -124,23 +135,88 @@ export default function CreatePostBox() {
                   Uploading…
                 </div>
               ) : (
-                <div className={`grid gap-2 ${mediaUrls.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
-                  {mediaUrls.map((url, idx) => (
-                    <div key={idx} className="relative group rounded-xl overflow-hidden border border-white/10">
-                      {mediaType === "video" ? (
-                        <video src={url} controls className="max-h-48 w-full object-cover rounded-xl" />
-                      ) : (
-                        <img src={url} alt="Preview" className="max-h-48 w-full object-cover rounded-xl" />
-                      )}
-                      <button
-                        onClick={() => setMediaUrls((list) => list.filter((_, i) => i !== idx))}
-                        className="absolute top-2 right-2 p-1 bg-black/60 rounded-full hover:bg-black/80 text-white transition-all"
-                        title="Remove"
-                      >
-                        <XIcon />
-                      </button>
+                <div className="relative w-full h-[280px] sm:h-[360px] bg-black/40 rounded-xl overflow-hidden border border-white/10 flex items-center justify-center group/preview">
+                  {mediaType === "video" ? (
+                    <video
+                      src={mediaUrls[activePreviewIdx || 0]}
+                      controls
+                      className={`w-full h-full ${
+                        mediaFit === "cover" ? "object-cover" : "object-contain"
+                      }`}
+                    />
+                  ) : (
+                    <img
+                      src={mediaUrls[activePreviewIdx || 0]}
+                      alt="Preview"
+                      className={`w-full h-full ${
+                        mediaFit === "cover" ? "object-cover" : "object-contain"
+                      }`}
+                    />
+                  )}
+
+                  {/* Previous Button */}
+                  {(activePreviewIdx || 0) > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setActivePreviewIdx(i => i - 1)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 p-2 bg-black/60 hover:bg-black/80 border border-white/10 rounded-full text-white text-xs backdrop-blur z-20"
+                    >
+                      ◀
+                    </button>
+                  )}
+
+                  {/* Next Button */}
+                  {(activePreviewIdx || 0) < mediaUrls.length - 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setActivePreviewIdx(i => i + 1)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-black/60 hover:bg-black/80 border border-white/10 rounded-full text-white text-xs backdrop-blur z-20"
+                    >
+                      ▶
+                    </button>
+                  )}
+
+                  {/* Remove Current Slide Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMediaUrls(list => {
+                        const newList = list.filter((_, i) => i !== activePreviewIdx);
+                        if (activePreviewIdx >= newList.length && newList.length > 0) {
+                          setActivePreviewIdx(newList.length - 1);
+                        }
+                        return newList;
+                      });
+                    }}
+                    className="absolute top-2 right-2 p-1.5 bg-black/70 rounded-full hover:bg-black/90 text-white transition-all z-20"
+                    title="Remove this image"
+                  >
+                    <XIcon />
+                  </button>
+
+                  {/* Slide index label */}
+                  <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/60 text-white rounded text-[10px] font-semibold backdrop-blur border border-white/5 z-20">
+                    {activePreviewIdx + 1} / {mediaUrls.length}
+                  </div>
+
+                  {/* Dots Indicator */}
+                  {mediaUrls.length > 1 && (
+                    <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-20">
+                      {mediaUrls.map((_, idx) => (
+                        <span
+                          key={idx}
+                          className={`w-1.5 h-1.5 rounded-full transition-all ${
+                            (activePreviewIdx || 0) === idx ? "bg-white scale-125" : "bg-white/40"
+                          }`}
+                        />
+                      ))}
                     </div>
-                  ))}
+                  )}
+
+                  {/* Fit mode display text */}
+                  <div className="absolute bottom-3 left-3 px-2 py-0.5 bg-black/60 text-white rounded text-[10px] font-semibold backdrop-blur border border-white/5 z-20">
+                    {mediaFit === "cover" ? "Crop (Cover)" : "Full Fit (Contain)"}
+                  </div>
                 </div>
               )}
             </div>
@@ -182,6 +258,18 @@ export default function CreatePostBox() {
                     {mediaUrls.length > 0 ? `${mediaUrls.length} Media` : "Photo/Video"}
                   </span>
                 </button>
+
+                {/* Media Fit Toggle Button */}
+                {mediaUrls.length > 0 && (
+                  <button
+                    onClick={() => setMediaFit((f) => (f === "cover" ? "contain" : "cover"))}
+                    type="button"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-semibold text-gray-300 transition-all duration-200"
+                    title="Toggle Crop (Cover) / Full Fit (Contain)"
+                  >
+                    {mediaFit === "cover" ? "⬜ Cover" : "⛶ Fit"}
+                  </button>
+                )}
               </div>
               <div className="flex items-center justify-between sm:justify-end gap-3">
                 <span className={`text-xs font-medium tabular-nums ${charRingColor}`}>

@@ -153,8 +153,24 @@ export default function App() {
     socket.on("message_deleted", (payload) => deleteIncomingMessage(payload));
     socket.on("message_reaction", (payload) => updateReaction(payload));
 
+    // When the user returns to the app (e.g. from home screen on mobile,
+    // or switches back to this browser tab), immediately sync unread counts.
+    // This ensures the red dot badge reflects reality even if a socket event
+    // was missed while the PWA was backgrounded.
+    const handleResume = () => {
+      fetchUnreadCount();
+      useMessageStore.getState().loadConversations();
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") handleResume();
+    };
+    window.addEventListener("focus", handleResume);
+    document.addEventListener("visibilitychange", handleVisibility);
+
     return () => {
       clearInterval(pollInterval);
+      window.removeEventListener("focus", handleResume);
+      document.removeEventListener("visibilitychange", handleVisibility);
       socket?.disconnect();
       socket = null;
     };

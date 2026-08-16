@@ -33,7 +33,7 @@ export const usePostStore = create((set, get) => ({
     }
   },
 
-  createPost: async (content, mediaUrl = "", mediaUrls = [], mediaType = "image", visibility = "public") => {
+  createPost: async (content, mediaUrl = "", mediaUrls = [], mediaType = "image", visibility = "public", mediaFit = "cover") => {
     const user = useAuthStore.getState().user;
     const tempId = `temp_${Date.now()}`;
     const optimisticPost = {
@@ -44,6 +44,7 @@ export const usePostStore = create((set, get) => ({
       mediaUrls: mediaUrls.length ? mediaUrls : mediaUrl ? [mediaUrl] : [],
       mediaType,
       visibility,
+      mediaFit,
       likes: [],
       likesCount: 0,
       _liked: false,
@@ -62,7 +63,7 @@ export const usePostStore = create((set, get) => ({
     }));
 
     try {
-      const { data } = await api.post("/posts", { content, mediaUrl, mediaUrls, mediaType, visibility });
+      const { data } = await api.post("/posts", { content, mediaUrl, mediaUrls, mediaType, visibility, mediaFit });
       // Replace optimistic post with real one
       set((state) => ({
         posts: state.posts.map((p) => p._id === tempId ? data.post : p),

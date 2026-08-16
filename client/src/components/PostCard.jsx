@@ -83,6 +83,7 @@ export default function PostCard({ post, myUserId }) {
   const [deleting, setDeleting] = useState(false);
   const [likeAnim, setLikeAnim] = useState(false);
   const [activeMediaIdx, setActiveMediaIdx] = useState(0);
+  const [viewFit, setViewFit] = useState(post.mediaFit || "cover");
 
   // Edit post state
   const [isEditing, setIsEditing] = useState(false);
@@ -99,6 +100,27 @@ export default function PostCard({ post, myUserId }) {
   const [dmSending, setDmSending] = useState(null);
   const [dmSent, setDmSent] = useState(null);
   const shareRef = useRef(null);
+  const scrollRef = useRef(null);
+
+  const handleScroll = (e) => {
+    const container = e.target;
+    const scrollLeft = container.scrollLeft;
+    const width = container.clientWidth;
+    if (width > 0) {
+      const idx = Math.round(scrollLeft / width);
+      setActiveMediaIdx(idx);
+    }
+  };
+
+  const scrollToIdx = (idx) => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({
+        left: idx * scrollRef.current.clientWidth,
+        behavior: "smooth",
+      });
+      setActiveMediaIdx(idx);
+    }
+  };
 
   // Close share modal on outside click
   useEffect(() => {
@@ -159,6 +181,7 @@ export default function PostCard({ post, myUserId }) {
     setLikesCount(post.likesCount ?? post.likes?.length ?? 0);
     setCommentCount(post.commentCount ?? 0);
     setEditContent(post.content || "");
+    setViewFit(post.mediaFit || "cover");
   }, [post]);
 
   const handleSaveEdit = async () => {
@@ -337,68 +360,118 @@ export default function PostCard({ post, myUserId }) {
           </>
         )}
 
-        {/* Media (Images Carousel or Video Player) */}
+        {/* Media (Images, Video, and Layers) */}
         {(() => {
           const mediaList = post.mediaUrls && post.mediaUrls.length > 0 ? post.mediaUrls : post.mediaUrl ? [post.mediaUrl] : [];
           if (mediaList.length === 0) return null;
 
-          if (post.mediaType === "video" || mediaList[0]?.match(/\.(mp4|webm|ogg)$/i)) {
-            return (
-              <div className="mt-3 rounded-xl overflow-hidden border border-white/5 bg-black">
-                <video src={mediaList[0]} controls className="max-h-[480px] w-full object-cover rounded-xl" />
-              </div>
-            );
-          }
-
-          if (mediaList.length === 1) {
-            return (
-              <img
-                src={mediaList[0]}
-                alt="Post media"
-                loading="lazy"
-                className="mt-3 rounded-xl max-h-[480px] object-cover w-full border border-white/5"
-                onError={(e) => { e.target.style.display = "none"; }}
-              />
-            );
-          }
+          const isVideo = post.mediaType === "video" || mediaList[0]?.match(/\.(mp4|webm|ogg)$/i);
 
           return (
-            <div className="mt-3 relative rounded-xl overflow-hidden border border-white/5 group">
-              <img
-                src={mediaList[activeMediaIdx || 0]}
-                alt="Post media"
-                loading="lazy"
-                className="max-h-[480px] object-cover w-full"
-              />
-              {/* Previous button */}
-              {(activeMediaIdx || 0) > 0 && (
-                <button
-                  onClick={() => setActiveMediaIdx((i) => i - 1)}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-1.5 rounded-full backdrop-blur transition-all"
-                >
-                  ◀
-                </button>
+            <div className="mt-3 relative w-full h-[320px] sm:h-[420px] md:h-[480px] bg-black/40 rounded-xl overflow-hidden border border-white/5 group/media flex items-center justify-center">
+              {/* Media Element */}
+              {isVideo ? (
+                <video
+                  src={mediaList[0]}
+                  controls
+                  className={`w-full h-full transition-all duration-300 ${
+                    viewFit === "cover" ? "object-cover" : "object-contain"
+                  }`}
+                />
+              ) : mediaList.length === 1 ? (
+                <img
+                  src={mediaList[0]}
+                  alt="Post media"
+                  loading="lazy"
+                  className={`w-full h-full transition-all duration-300 ${
+                    viewFit === "cover" ? "object-cover" : "object-contain"
+                  }`}
+                  onError={(e) => { e.target.style.display = "none"; }}
+                />
+              ) : (
+                <div className="w-full h-full relative group/carousel">
+                  {/* Horizontally scrollable container with CSS snap */}
+                  <div
+                    ref={scrollRef}
+                    onScroll={handleScroll}
+                    className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scroll-smooth scrollbar-none"
+                  >
+                    {mediaList.map((url, idx) => (
+                      <div
+                        key={idx}
+                        className="w-full h-full flex-shrink-0 snap-center flex items-center justify-center"
+                      >
+                        <img
+                          src={url}
+                          alt="Post media"
+                          loading="lazy"
+                          className={`w-full h-full transition-all duration-300 ${
+                            viewFit === "cover" ? "object-cover" : "object-contain"
+                          }`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Previous button (hidden on touch, shown on hover) */}
+                  {(activeMediaIdx || 0) > 0 && (
+                    <button
+                      onClick={() => scrollToIdx(activeMediaIdx - 1)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur border border-white/10 transition-all z-30 hidden md:block opacity-0 group-hover/carousel:opacity-100"
+                    >
+                      ◀
+                    </button>
+                  )}
+
+                  {/* Next button (hidden on touch, shown on hover) */}
+                  {(activeMediaIdx || 0) < mediaList.length - 1 && (
+                    <button
+                      onClick={() => scrollToIdx(activeMediaIdx + 1)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur border border-white/10 transition-all z-30 hidden md:block opacity-0 group-hover/carousel:opacity-100"
+                    >
+                      ▶
+                    </button>
+                  )}
+
+                  {/* Dots indicator */}
+                  <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-30">
+                    {mediaList.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => scrollToIdx(idx)}
+                        className={`w-2 h-2 rounded-full transition-all p-0 border-none outline-none ${
+                          (activeMediaIdx || 0) === idx ? "bg-white scale-125" : "bg-white/40"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
               )}
-              {/* Next button */}
-              {(activeMediaIdx || 0) < mediaList.length - 1 && (
-                <button
-                  onClick={() => setActiveMediaIdx((i) => i + 1)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-1.5 rounded-full backdrop-blur transition-all"
-                >
-                  ▶
-                </button>
-              )}
-              {/* Dots */}
-              <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5">
-                {mediaList.map((_, idx) => (
-                  <span
-                    key={idx}
-                    className={`w-2 h-2 rounded-full transition-all ${
-                      (activeMediaIdx || 0) === idx ? "bg-white scale-125" : "bg-white/40"
-                    }`}
-                  />
-                ))}
-              </div>
+
+
+
+              {/* Toggle Fit Button */}
+              <button
+                onClick={() => setViewFit((f) => (f === "cover" ? "contain" : "cover"))}
+                title={viewFit === "cover" ? "Show Full Fit (Contain)" : "Show Crop (Cover)"}
+                className="absolute top-3 left-3 px-2.5 py-1 bg-black/60 hover:bg-black/80 text-white rounded-lg text-xs font-semibold backdrop-blur border border-white/10 opacity-0 group-hover/media:opacity-100 transition-all duration-200 z-40 flex items-center gap-1"
+              >
+                {viewFit === "cover" ? (
+                  <>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
+                    </svg>
+                    <span>Fit</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    <span>Fill</span>
+                  </>
+                )}
+              </button>
             </div>
           );
         })()}
