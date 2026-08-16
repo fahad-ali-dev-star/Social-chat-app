@@ -17,6 +17,8 @@
 
   html, body, #root {
     min-height: 100%;
+    /* Respect iOS safe area insets */
+    min-height: -webkit-fill-available;
   }
 
   body {
@@ -27,6 +29,22 @@
                       radial-gradient(at 0%  50%, hsla(285,100%,74%,0.04) 0px, transparent 50%);
     background-attachment: fixed;
     transition: background-color 0.3s ease, color 0.3s ease;
+
+    /* Native-feel mobile: no text selection flash, no rubber-band bounce */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    overscroll-behavior-y: none;
+
+    /* Respect iOS safe areas (notch / home indicator) */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Prevent double-tap zoom on all interactive elements */
+  a, button, [role="button"], input, select, textarea, label {
+    touch-action: manipulation;
   }
 
   select option {
@@ -118,6 +136,22 @@
       transform: translateZ(0);
     }
   }
+
+  /* Page skeleton loader */
+  @keyframes skeleton-shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+  .skeleton {
+    background: linear-gradient(90deg,
+      rgba(255,255,255,0.04) 25%,
+      rgba(255,255,255,0.09) 50%,
+      rgba(255,255,255,0.04) 75%
+    );
+    background-size: 800px 100%;
+    animation: skeleton-shimmer 1.6s infinite linear;
+    border-radius: 8px;
+  }
 }
 
 @layer components {
@@ -172,6 +206,14 @@
   }
 
   .badge { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold; }
+
+  /* Safe-area aware nav bottom bar */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
 }
 
 @layer utilities {

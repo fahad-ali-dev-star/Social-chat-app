@@ -1,21 +1,37 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { io } from "socket.io-client";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Feed from "./pages/Feed";
-import Profile from "./pages/Profile";
-import Notifications from "./pages/Notifications";
-import Messages from "./pages/Messages";
-import Search from "./pages/Search";
-import Bookmarks from "./pages/Bookmarks";
-import Admin from "./pages/Admin";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Navbar from "./components/Navbar";
+import InstallBanner from "./components/InstallBanner";
+import OfflineBanner from "./components/OfflineBanner";
 import { useAuthStore } from "./store/authStore";
 import { useNotificationStore, showPushNotification, requestNotificationPermission } from "./store/notificationStore";
 import { useMessageStore } from "./store/messageStore";
 import { usePostStore } from "./store/postStore";
+
+// Lazy-load all pages — reduces initial JS bundle dramatically
+const Login         = lazy(() => import("./pages/Login"));
+const Register      = lazy(() => import("./pages/Register"));
+const Feed          = lazy(() => import("./pages/Feed"));
+const Profile       = lazy(() => import("./pages/Profile"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const Messages      = lazy(() => import("./pages/Messages"));
+const Search        = lazy(() => import("./pages/Search"));
+const Bookmarks     = lazy(() => import("./pages/Bookmarks"));
+const Admin         = lazy(() => import("./pages/Admin"));
+
+// Skeleton fallback while a page chunk is loading
+function PageSkeleton() {
+  return (
+    <div className="flex flex-col gap-4 p-4 max-w-xl mx-auto mt-8">
+      <div className="skeleton h-12 w-full rounded-2xl" />
+      <div className="skeleton h-48 w-full rounded-2xl" />
+      <div className="skeleton h-48 w-full rounded-2xl" />
+      <div className="skeleton h-32 w-full rounded-2xl" />
+    </div>
+  );
+}
 
 // Layout wrapping authenticated pages
 function AppLayout() {
@@ -79,11 +95,11 @@ export default function App() {
     });
     window.__socketInstance = socket;
 
-    // Interval timer to poll unread counts as fallback
+    // Poll every 30s as fallback (Socket.IO handles real-time, this is just a safety net)
     const pollInterval = setInterval(() => {
       fetchUnreadCount();
       useMessageStore.getState().loadConversations();
-    }, 10000);
+    }, 30000);
 
     socket.on("online_users", (onlineUserIds) => {
       window.dispatchEvent(new CustomEvent("online_users_update", { detail: onlineUserIds }));
@@ -97,7 +113,6 @@ export default function App() {
       addNotification(notif);
       fetchUnreadCount();
 
-      // Show native push notification on every page
       const senderName = notif.sender?.displayName || notif.sender?.username || "Someone";
       let body = "";
       if (notif.type === "like") body = `${senderName} liked your post ❤️`;
@@ -113,14 +128,12 @@ export default function App() {
         tag: `notif-${notif._id || Date.now()}`,
       });
 
-      // Dispatch event for real-time in-app toast notification banner on any page
       window.dispatchEvent(new CustomEvent("new_notification_toast", { detail: notif }));
     });
 
     socket.on("new_message", ({ message, conversationId }) => {
       addIncomingMessage(message, conversationId);
 
-      // Show native push notification for new message
       const senderName = message.sender?.displayName || message.sender?.username || "Someone";
       const msgBody = message.body || (message.mediaType === "audio" ? "🎙️ Voice note" : "📷 Photo");
       showPushNotification({
@@ -129,10 +142,9 @@ export default function App() {
         tag: `msg-${conversationId}`,
       });
 
-      const event = new CustomEvent("new_message_toast", {
+      window.dispatchEvent(new CustomEvent("new_message_toast", {
         detail: { message, conversationId },
-      });
-      window.dispatchEvent(event);
+      }));
     });
 
     socket.on("message_delivered", (payload) => markDelivered(payload));
@@ -148,31 +160,36 @@ export default function App() {
     };
   }, [user?.id]);
 
-
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Auth pages (no nav) */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+      {/* Global PWA banners */}
+      <OfflineBanner />
+      <InstallBanner />
 
-        {/* Protected pages with nav */}
-        <Route
-          element={
-            <ProtectedRoute>
-              <AppLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route path="/" element={<Feed />} />
-          <Route path="/profile/:username" element={<Profile />} />
-          <Route path="/notifications" element={<Notifications />} />
-          <Route path="/messages" element={<Messages />} />
-          <Route path="/search" element={<Search />} />
-          <Route path="/bookmarks" element={<Bookmarks />} />
-          <Route path="/admin" element={<Admin />} />
-        </Route>
-      </Routes>
+      <Suspense fallback={<PageSkeleton />}>
+        <Routes>
+          {/* Auth pages (no nav) */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          {/* Protected pages with nav */}
+          <Route
+            element={
+              <ProtectedRoute>
+                <AppLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/" element={<Feed />} />
+            <Route path="/profile/:username" element={<Profile />} />
+            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/messages" element={<Messages />} />
+            <Route path="/search" element={<Search />} />
+            <Route path="/bookmarks" element={<Bookmarks />} />
+            <Route path="/admin" element={<Admin />} />
+          </Route>
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }
