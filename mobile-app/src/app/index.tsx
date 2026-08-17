@@ -35,6 +35,12 @@ export default function App() {
     fetchMe();
   }, []);
 
+  useEffect(() => {
+    if (user) {
+      loadFeed();
+    }
+  }, [user]);
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -45,12 +51,6 @@ export default function App() {
       </SafeAreaView>
     );
   }
-
-  useEffect(() => {
-    if (user) {
-      loadFeed();
-    }
-  }, [user]);
 
   const handleLogin = async () => {
     if (!emailOrUsername.trim() || !password.trim()) {
