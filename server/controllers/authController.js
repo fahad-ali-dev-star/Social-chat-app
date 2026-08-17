@@ -63,11 +63,19 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const normalizedEmail = normalizeEmail(email);
-    const user = await User.findOne({ email: normalizedEmail }).select("+password");
+    const identifier = req.body.email || req.body.username || req.body.emailOrUsername;
+    const normalizedIdentifier = String(identifier || "").trim();
+    const normalizedEmail = normalizeEmail(identifier);
 
-    if (!user || !(await user.comparePassword(password))) {
+    const user = await User.findOne({
+      $or: [
+        { email: normalizedEmail },
+        { username: normalizedIdentifier },
+        { username: normalizedEmail },
+      ],
+    }).select("+password");
+
+    if (!user || !(await user.comparePassword(req.body.password))) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
     if (user.accountStatus === "banned") return res.status(403).json({ message: "Account is banned" });
