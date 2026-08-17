@@ -35,4 +35,4 @@ jobs:
       - name: Publish EAS Update
         run: |
           cd mobile-app
-          eas update --auto --non-interactive --verbose
+          eas update --auto --non-interactive
