@@ -11,6 +11,8 @@ import {
   Dimensions,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  Animated,
+  Share,
 } from "react-native";
 import { router } from "expo-router";
 import { Video, ResizeMode } from "expo-av";
@@ -26,21 +28,25 @@ const MEDIA_WIDTH = SCREEN_WIDTH - CARD_PADDING;
 
 interface Props {
   post: any;
+  isVisible?: boolean;
 }
 
 function isVideoUrl(url: string): boolean {
   return /\.(mp4|webm|mov|ogg|m4v)(\?.*)?$/i.test(url);
 }
 
-export default function PostCard({ post }: Props) {
+export default function PostCard({ post, isVisible = false }: Props) {
   const [commentModalVisible, setCommentModalVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [mediaModalVisible, setMediaModalVisible] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
   const [fullscreenIdx, setFullscreenIdx] = useState(0);
+  const [showFloatingHeart, setShowFloatingHeart] = useState(false);
 
   const scrollRef = useRef<ScrollView>(null);
   const fullscreenScrollRef = useRef<ScrollView>(null);
+  const lastTapRef = useRef<number>(0);
+  const heartAnim = useRef(new Animated.Value(0)).current;
 
   const toggleLike = usePostStore((s) => s.toggleLike);
   const toggleBookmark = usePostStore((s) => s.toggleBookmark);
@@ -117,6 +123,62 @@ export default function PostCard({ post }: Props) {
     }, 80);
   };
 
+  const triggerHeartAnimation = () => {
+    heartAnim.setValue(0);
+    setShowFloatingHeart(true);
+    Animated.sequence([
+      Animated.spring(heartAnim, {
+        toValue: 1,
+        friction: 4,
+        useNativeDriver: true,
+      }),
+      Animated.timing(heartAnim, {
+        toValue: 0,
+        duration: 250,
+        delay: 350,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowFloatingHeart(false);
+    });
+  };
+
+  const handleMediaPress = (idx: number) => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+    if (lastTapRef.current && now - lastTapRef.current < DOUBLE_TAP_DELAY) {
+      // Double tap detected!
+      triggerHeartAnimation();
+      if (!isLiked) {
+        toggleLike(post._id);
+      }
+      lastTapRef.current = 0;
+    } else {
+      lastTapRef.current = now;
+      const tapTime = now;
+      setTimeout(() => {
+        if (lastTapRef.current === tapTime) {
+          openFullscreen(idx);
+          lastTapRef.current = 0;
+        }
+      }, DOUBLE_TAP_DELAY);
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      const shareUrl = `https://buzzchat.app/post/${post._id}`;
+      const contentSnippet = post.content ? `"${post.content.slice(0, 100)}${post.content.length > 100 ? '...' : ''}"` : '';
+      await Share.share({
+        message: `Check out this post on Buzz Chat by @${post.author?.username || 'user'}:\n${contentSnippet}\n${shareUrl}`,
+        url: shareUrl,
+        title: "Share Post",
+      });
+    } catch (err) {
+      console.error("Failed to share post", err);
+    }
+  };
+
   return (
     <View style={styles.card}>
       {/* Header */}
@@ -169,6 +231,27 @@ export default function PostCard({ post }: Props) {
       {/* ── Media Section ── */}
       {mediaList.length > 0 && (
         <View style={styles.mediaWrapper}>
+          {showFloatingHeart && (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.floatingHeartContainer,
+                {
+                  opacity: heartAnim,
+                  transform: [
+                    {
+                      scale: heartAnim.interpolate({
+                        inputRange: [0, 0.5, 1],
+                        outputRange: [0.3, 1.25, 1],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <Text style={styles.floatingHeartText}>❤️</Text>
+            </Animated.View>
+          )}
           {isVideo ? (
             /* ── Video Player ── */
             <Video
@@ -176,13 +259,13 @@ export default function PostCard({ post }: Props) {
               style={styles.mediaVideo}
               useNativeControls
               resizeMode={ResizeMode.CONTAIN}
-              shouldPlay={false}
+              shouldPlay={isVisible}
             />
           ) : mediaList.length === 1 ? (
             /* ── Single Image ── */
             <TouchableOpacity
               activeOpacity={0.95}
-              onPress={() => openFullscreen(0)}
+              onPress={() => handleMediaPress(0)}
             >
               <Image
                 source={{ uri: mediaList[0] }}
@@ -207,7 +290,7 @@ export default function PostCard({ post }: Props) {
                   <TouchableOpacity
                     key={idx}
                     activeOpacity={0.95}
-                    onPress={() => openFullscreen(idx)}
+                    onPress={() => handleMediaPress(idx)}
                   >
                     <Image
                       source={{ uri: url }}
@@ -267,6 +350,13 @@ export default function PostCard({ post }: Props) {
           onPress={() => toggleBookmark(post._id)}
         >
           <Text style={styles.actionIcon}>{isBookmarked ? "🔖" : "📑"}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={handleShare}
+        >
+          <Text style={styles.actionIcon}>📤</Text>
         </TouchableOpacity>
       </View>
 
@@ -548,5 +638,20 @@ const styles = StyleSheet.create({
   fullscreenVideo: {
     width: SCREEN_WIDTH,
     height: 340,
+  },
+  floatingHeartContainer: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    marginTop: -40,
+    marginLeft: -40,
+    width: 80,
+    height: 80,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 99,
+  },
+  floatingHeartText: {
+    fontSize: 64,
   },
 });

@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import api from "../api";
 import { usePostStore } from "../postStore";
+import VerifiedBadge from "./VerifiedBadge";
 
 interface Props {
   visible: boolean;
@@ -66,7 +67,7 @@ export default function CommentModal({ visible, postId, onClose }: Props) {
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={styles.overlay}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <View style={styles.sheetContainer}>
           {/* Header */}
@@ -103,13 +104,7 @@ export default function CommentModal({ visible, postId, onClose }: Props) {
                       <Text style={styles.authorName}>
                         {item.author?.displayName || item.author?.username}
                       </Text>
-                      {item.author?.isVerified && (
-                        <Image
-                          source={require("@/assets/images/5c6a9983d0c9eef8b3912a451cc8a27d.png")}
-                          style={{ width: 14, height: 14 }}
-                          resizeMode="contain"
-                        />
-                      )}
+                      {item.author?.isVerified && <VerifiedBadge size={14} />}
                     </View>
                     <Text style={styles.commentText}>{item.content}</Text>
                   </View>

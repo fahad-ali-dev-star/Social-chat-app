@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Post from "../models/Post.js";
 import Comment from "../models/Comment.js";
 import Notification from "../models/Notification.js";
@@ -227,6 +228,9 @@ export const deletePost = async (req, res) => {
 
 export const getComments = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.json({ comments: [] });
+    }
     const post = await Post.findById(req.params.id).select("author visibility");
     if (!post) return res.status(404).json({ message: "Post not found" });
     if (!(await canViewPost(post, req.userId))) {
@@ -237,11 +241,15 @@ export const getComments = async (req, res) => {
       .populate("author", "username displayName avatarUrl isVerified")
       .populate("mentions", "username displayName avatarUrl isVerified");
     const currentUserId = String(req.userId);
-    const serialized = comments.map((comment) => ({
-      ...comment.toObject(),
-      likesCount: comment.likes.length,
-      _liked: comment.likes.some((id) => String(id) === currentUserId),
-    }));
+    const serialized = comments.map((comment) => {
+      const commentObj = comment.toObject();
+      const likesArr = Array.isArray(commentObj.likes) ? commentObj.likes : [];
+      return {
+        ...commentObj,
+        likesCount: likesArr.length,
+        _liked: likesArr.some((id) => String(id) === currentUserId),
+      };
+    });
     res.json({ comments: serialized });
   } catch (err) {
     console.error("Failed to fetch comments:", err);
@@ -251,6 +259,9 @@ export const getComments = async (req, res) => {
 
 export const addComment = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(404).json({ message: "Post not found" });
+    }
     const { content, parentComment = null } = req.body;
     const text = cleanString(content, { max: 500, trim: true });
     if (!text) return res.status(400).json({ message: "Comment content is required" });
@@ -259,6 +270,9 @@ export const addComment = async (req, res) => {
 
     let parent = null;
     if (parentComment) {
+      if (!mongoose.Types.ObjectId.isValid(parentComment)) {
+        return res.status(400).json({ message: "Parent comment not found" });
+      }
       parent = await Comment.findOne({ _id: parentComment, post: post._id });
       if (!parent) return res.status(400).json({ message: "Parent comment not found" });
     }

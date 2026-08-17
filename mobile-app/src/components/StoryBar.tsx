@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   ScrollView,
   View,
@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
   Dimensions,
+  Animated,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Video, ResizeMode } from "expo-av";
@@ -18,6 +19,7 @@ import { useAuthStore } from "../authStore";
 import VerifiedBadge from "./VerifiedBadge";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const STORY_DURATION = 5000; // 5 seconds per image story
 
 function formatTimeAgo(iso?: string) {
   if (!iso) return "";
@@ -35,6 +37,10 @@ export default function StoryBar() {
   const [activeStoryIdx, setActiveStoryIdx] = useState<number>(0);
   const [uploading, setUploading] = useState(false);
   const user = useAuthStore((s) => s.user);
+
+  // Animated progress bar
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const progressAnimRef = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
     loadStories();
@@ -98,6 +104,48 @@ export default function StoryBar() {
   const isMyStory =
     String(currentStory?.user?._id || currentStory?.user || "") ===
     String(user?.id || user?._id);
+
+  // Start / restart animated progress whenever active story changes
+  const startProgress = useCallback(() => {
+    // Stop any running animation
+    if (progressAnimRef.current) {
+      progressAnimRef.current.stop();
+      progressAnimRef.current = null;
+    }
+    progressAnim.setValue(0);
+
+    const isVideo =
+      currentStory?.mediaType === "video" ||
+      /\.(mp4|mov|webm)$/i.test(currentStory?.mediaUrl || "");
+
+    // For videos, progress is driven by playback; for images, use timer
+    if (!isVideo) {
+      const anim = Animated.timing(progressAnim, {
+        toValue: 1,
+        duration: STORY_DURATION,
+        useNativeDriver: false,
+      });
+      progressAnimRef.current = anim;
+      anim.start(({ finished }) => {
+        if (finished) {
+          handleNextStory();
+        }
+      });
+    }
+  }, [activeGroupIdx, activeStoryIdx, currentStory]);
+
+  useEffect(() => {
+    if (activeGroupIdx !== null && currentStory) {
+      startProgress();
+    } else {
+      // Viewer closed – reset
+      if (progressAnimRef.current) {
+        progressAnimRef.current.stop();
+        progressAnimRef.current = null;
+      }
+      progressAnim.setValue(0);
+    }
+  }, [activeGroupIdx, activeStoryIdx]);
 
   const handleNextStory = () => {
     if (!currentGroup) return;
@@ -251,20 +299,35 @@ export default function StoryBar() {
           <View style={styles.viewerContainer}>
             {/* Top Progress Segment Bar */}
             <View style={styles.progressContainer}>
-              {currentGroup.stories.map((s: any, idx: number) => (
-                <View key={s._id || idx} style={styles.progressSegmentBg}>
-                  <View
-                    style={[
-                      styles.progressSegmentFill,
-                      idx < activeStoryIdx
-                        ? { width: "100%" }
-                        : idx === activeStoryIdx
-                        ? { width: "100%" }
-                        : { width: "0%" },
-                    ]}
-                  />
-                </View>
-              ))}
+              {currentGroup.stories.map((s: any, idx: number) => {
+                const isActive = idx === activeStoryIdx;
+                const isPast = idx < activeStoryIdx;
+
+                return (
+                  <View key={s._id || idx} style={styles.progressSegmentBg}>
+                    {isActive ? (
+                      <Animated.View
+                        style={[
+                          styles.progressSegmentFill,
+                          {
+                            width: progressAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: ["0%", "100%"],
+                            }),
+                          },
+                        ]}
+                      />
+                    ) : (
+                      <View
+                        style={[
+                          styles.progressSegmentFill,
+                          { width: isPast ? "100%" : "0%" },
+                        ]}
+                      />
+                    )}
+                  </View>
+                );
+              })}
             </View>
 
             {/* Header: User Info & Controls */}
@@ -319,7 +382,13 @@ export default function StoryBar() {
                   resizeMode={ResizeMode.CONTAIN}
                   shouldPlay
                   isLooping={false}
+                  progressUpdateIntervalMillis={100}
                   onPlaybackStatusUpdate={(status: any) => {
+                    // Drive progress bar from video playback position
+                    if (status.isLoaded && status.durationMillis) {
+                      const pct = status.positionMillis / status.durationMillis;
+                      progressAnim.setValue(Math.min(pct, 1));
+                    }
                     if (status.didJustFinish) handleNextStory();
                   }}
                 />

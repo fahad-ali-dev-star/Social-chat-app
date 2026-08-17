@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { StyleSheet, Text, View, TouchableOpacity, Image } from "react-native";
 import { router } from "expo-router";
 import api from "../api";
@@ -13,11 +13,17 @@ export default function UserCard({ user, onFollowToggle }: Props) {
   const [following, setFollowing] = useState(Boolean(user.isFollowing));
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    setFollowing(Boolean(user.isFollowing));
+  }, [user.isFollowing, user._id, user.id]);
+
   const handleToggleFollow = async () => {
+    const targetId = user._id || user.id;
+    if (!targetId) return;
     setLoading(true);
     try {
-      const { data } = await api.post(`/users/${user._id || user.id}/follow`);
-      setFollowing(data.following);
+      const { data } = await api.post(`/users/${targetId}/follow`);
+      setFollowing(Boolean(data.following));
       if (onFollowToggle) onFollowToggle();
     } catch (err) {
       console.error("Follow error", err);
@@ -33,35 +39,38 @@ export default function UserCard({ user, onFollowToggle }: Props) {
   };
 
   return (
-    <TouchableOpacity style={styles.card} onPress={handlePress}>
-      {user.avatarUrl ? (
-        <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} />
-      ) : (
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {user.displayName?.[0] || user.username?.[0] || "U"}
-          </Text>
+    <View style={styles.card}>
+      <TouchableOpacity style={styles.leftRow} onPress={handlePress} activeOpacity={0.8}>
+        {user.avatarUrl ? (
+          <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} />
+        ) : (
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {user.displayName?.[0] || user.username?.[0] || "U"}
+            </Text>
+          </View>
+        )}
+        <View style={styles.info}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <Text style={styles.name}>{user.displayName || user.username}</Text>
+            {user.isVerified && <VerifiedBadge size={14} />}
+          </View>
+          <Text style={styles.username}>@{user.username}</Text>
+          {user.bio ? <Text style={styles.bio} numberOfLines={1}>{user.bio}</Text> : null}
         </View>
-      )}
-      <View style={styles.info}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-          <Text style={styles.name}>{user.displayName || user.username}</Text>
-          {user.isVerified && <VerifiedBadge size={14} />}
-        </View>
-        <Text style={styles.username}>@{user.username}</Text>
-        {user.bio ? <Text style={styles.bio} numberOfLines={1}>{user.bio}</Text> : null}
-      </View>
+      </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.btn, following ? styles.btnOutline : styles.btnPrimary]}
         onPress={handleToggleFollow}
         disabled={loading}
+        activeOpacity={0.8}
       >
         <Text style={[styles.btnText, following ? styles.btnOutlineText : styles.btnPrimaryText]}>
-          {following ? "Following" : "Follow"}
+          {loading ? "..." : following ? "Following" : "Follow"}
         </Text>
       </TouchableOpacity>
-    </TouchableOpacity>
+    </View>
   );
 }
 
@@ -73,6 +82,12 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 14,
     marginBottom: 8,
+    gap: 12,
+  },
+  leftRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   avatar: {

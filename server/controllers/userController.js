@@ -87,6 +87,7 @@ export const getSuggestions = async (req, res) => {
   try {
     const currentUser = await User.findById(req.userId).select("following blockedUsers blockedBy");
     const blockedIds = [...(currentUser?.blockedUsers || []), ...(currentUser?.blockedBy || [])];
+    const followingSet = new Set((currentUser?.following || []).map((id) => String(id._id || id)));
     const exclude = [...(currentUser?.following || []), req.userId, ...blockedIds];
 
     const suggestions = await User.find({
@@ -96,7 +97,16 @@ export const getSuggestions = async (req, res) => {
       .select("username displayName avatarUrl followers isPrivate isVerified")
       .limit(6);
 
-    res.json({ suggestions });
+    const serialized = suggestions.map((u) => {
+      const uIdStr = String(u._id);
+      const isFollowing = followingSet.has(uIdStr) || (Array.isArray(u.followers) && u.followers.some((f) => String(f._id || f) === String(req.userId)));
+      return {
+        ...u.toObject(),
+        isFollowing,
+      };
+    });
+
+    res.json({ suggestions: serialized });
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch suggestions" });
   }
@@ -149,18 +159,30 @@ export const searchUsers = async (req, res) => {
     if (!q.trim()) return res.json({ users: [] });
 
     const regex = new RegExp(escapeRegex(sanitizeQueryText(q, 80)), "i");
-    const currentUser = await User.findById(req.userId).select("blockedUsers blockedBy");
+    const currentUser = await User.findById(req.userId).select("following blockedUsers blockedBy");
     const blockedIds = [...(currentUser?.blockedUsers || []), ...(currentUser?.blockedBy || [])];
+    const followingSet = new Set((currentUser?.following || []).map((id) => String(id._id || id)));
+
     const users = await User.find({
       accountStatus: "active",
       _id: { $nin: [req.userId, ...blockedIds] },
       $or: [{ username: regex }, { displayName: regex }],
     })
-      .select("username displayName avatarUrl bio isPrivate isVerified")
+      .select("username displayName avatarUrl bio isPrivate isVerified followers")
       .limit(20);
 
-    res.json({ users });
+    const serialized = users.map((u) => {
+      const uIdStr = String(u._id);
+      const isFollowing = followingSet.has(uIdStr) || (Array.isArray(u.followers) && u.followers.some((f) => String(f._id || f) === String(req.userId)));
+      return {
+        ...u.toObject(),
+        isFollowing,
+      };
+    });
+
+    res.json({ users: serialized });
   } catch (err) {
+    console.error("Search users error:", err);
     res.status(500).json({ message: "Failed to search users" });
   }
 };

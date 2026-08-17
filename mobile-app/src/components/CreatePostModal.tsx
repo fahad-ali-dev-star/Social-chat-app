@@ -33,7 +33,7 @@ export default function CreatePostModal({ visible, onClose }: Props) {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ["images", "videos"],
       quality: 0.8,
     });
 

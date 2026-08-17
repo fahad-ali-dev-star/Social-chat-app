@@ -1,20 +1,13 @@
 {
   "expo": {
-    "name": "social-app",
-    "slug": "social-app",
+    "name": "Buzz Chat",
+    "slug": "buzz-app",
     "version": "1.0.0",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/0458a781-f4e3-4181-8f40-73db17588cc3"
-    },
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mobileapp",
     "userInterfaceStyle": "automatic",
-    "ios": {
-    },
+    "ios": {},
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#F5F9FA",
@@ -44,9 +37,11 @@
       "typedRoutes": true
     },
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "0458a781-f4e3-4181-8f40-73db17588cc3"
+        "projectId": "9b683630-9c85-46d2-8300-f5b5b9d3707f"
       }
-    }
+    },
+    "owner": "fahad-dev"
   }
 }

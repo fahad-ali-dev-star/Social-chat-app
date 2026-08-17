@@ -3,6 +3,7 @@ import io from "socket.io-client";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "./api";
 import { SOCKET_SERVER_URL } from "./config";
+import { registerForPushNotificationsAsync, triggerLocalNotification } from "./utils/notifications";
 
 let socket = null;
 
@@ -23,6 +24,13 @@ export const useNotificationStore = create((set, get) => ({
     try {
       const token = await AsyncStorage.getItem("buzz_token");
       if (!token) return;
+
+      // Register for Push Notifications
+      registerForPushNotificationsAsync().then((pushToken) => {
+        if (pushToken) {
+          api.put("/users/me", { pushToken }).catch(() => {});
+        }
+      });
 
       // Initial fetch
       get().fetchUnreadCounts();
@@ -56,6 +64,13 @@ export const useNotificationStore = create((set, get) => ({
             },
           }));
 
+          // Trigger native system notification
+          triggerLocalNotification({
+            title: "🔔 Buzz Chat Alert",
+            body,
+            data: { notifId: notif._id },
+          });
+
           // Auto-hide toast after 4 seconds
           setTimeout(() => {
             get().clearToast();
@@ -74,6 +89,13 @@ export const useNotificationStore = create((set, get) => ({
               body,
             },
           }));
+
+          // Trigger native system notification
+          triggerLocalNotification({
+            title: `💬 ${senderName}`,
+            body,
+            data: { conversationId: message.conversation },
+          });
 
           // Auto-hide toast after 4 seconds
           setTimeout(() => {

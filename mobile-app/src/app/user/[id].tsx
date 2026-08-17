@@ -10,13 +10,20 @@ import {
   Image,
   Alert,
   Modal,
+  Dimensions,
+  StatusBar,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons, Feather } from "@expo/vector-icons";
 import api from "../../api";
 import PostCard from "../../components/PostCard";
 import VerifiedBadge from "../../components/VerifiedBadge";
 import { useMessageStore } from "../../messageStore";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const GRID_ITEM_SIZE = (SCREEN_WIDTH - 40) / 3;
 
 export default function UserProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -30,6 +37,12 @@ export default function UserProfileScreen() {
   const [blockLoading, setBlockLoading] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState<"grid" | "feed" | "saved">("grid");
+
+  // Story Status State
+  const [userStoryGroup, setUserStoryGroup] = useState<any | null>(null);
+  const [showStoryViewer, setShowStoryViewer] = useState(false);
+  const [activeStoryIdx, setActiveStoryIdx] = useState(0);
 
   const getOrCreateConversation = useMessageStore((s) => s.getOrCreateConversation);
 
@@ -40,14 +53,24 @@ export default function UserProfileScreen() {
   const loadProfile = async () => {
     setLoading(true);
     try {
-      const [profRes, postRes] = await Promise.all([
+      const [profRes, postRes, storiesRes] = await Promise.all([
         api.get(`/users/${username}`),
         api.get(`/users/${username}/posts`),
+        api.get("/stories/feed").catch(() => ({ data: {} })),
       ]);
       setProfileData(profRes.data.user);
       setRelationship(profRes.data.relationship);
       setPosts(postRes.data.posts || []);
       setIsBlocked(false);
+
+      // Check if this profile user has an active story
+      const groups = storiesRes.data?.storyGroups || storiesRes.data?.stories || [];
+      const found = groups.find(
+        (g: any) =>
+          g.user?.username === username ||
+          String(g.user?._id || g.user?.id) === String(profRes.data.user?._id || profRes.data.user?.id)
+      );
+      setUserStoryGroup(found || null);
     } catch (err: any) {
       if (err?.response?.status === 403) {
         setIsBlocked(true);
@@ -69,7 +92,6 @@ export default function UserProfileScreen() {
         requested: data.requested,
         followersCount: data.followersCount,
       }));
-      // Update follower count on the profile
       setProfileData((prev: any) => ({
         ...prev,
         followers: {
@@ -102,7 +124,6 @@ export default function UserProfileScreen() {
               const { data } = await api.post(`/users/${profileData._id}/block`);
               setIsBlocked(data.blocked);
               if (data.blocked) {
-                // After blocking, unfollow state clears
                 setRelationship((prev: any) => ({
                   ...prev,
                   isFollowing: false,
@@ -134,168 +155,305 @@ export default function UserProfileScreen() {
     }
   };
 
-  /** Follow button label logic (same as web app) */
-  const getFollowLabel = () => {
-    if (followLoading) return "…";
-    if (relationship?.isFollowing) return "Following ✓";
-    if (relationship?.requested) return "Requested ⏳";
-    return "Follow";
-  };
+  const gridMediaPosts = posts.filter(
+    (p) => p.mediaUrl || p.mediaUrls?.length || p.image || p.imageUrl
+  );
+  const displayGrid = gridMediaPosts.length > 0 ? gridMediaPosts : posts;
 
-  const followBtnStyle = relationship?.isFollowing
-    ? styles.btnOutline
-    : relationship?.requested
-    ? styles.btnRequested
-    : styles.btnPrimary;
-
-  const followTextStyle = relationship?.isFollowing
-    ? styles.btnOutlineText
-    : styles.btnPrimaryText;
-
-  return (
-    <SafeAreaView style={[styles.container, { paddingTop }]}>
-      {/* Header */}
-      <View style={styles.topHeader}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backText}>← Back</Text>
+  const renderHeader = () => (
+    <View style={styles.headerContent}>
+      {/* Navigation Top Bar */}
+      <View style={styles.topBar}>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={24} color="#F1F5F9" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>@{username}</Text>
-
-        {/* Three-dot menu (non-own profiles only) */}
-        {profileData && !relationship?.isOwn && (
-          <TouchableOpacity
-            style={styles.menuBtn}
-            onPress={() => setMenuVisible(true)}
-          >
-            <Text style={styles.menuDots}>⋯</Text>
+        <Text style={styles.headerTitle}>@{profileData?.username || username}</Text>
+        {profileData && !relationship?.isOwn ? (
+          <TouchableOpacity style={styles.iconBtn} onPress={() => setMenuVisible(true)}>
+            <Feather name="menu" size={24} color="#F1F5F9" />
           </TouchableOpacity>
+        ) : (
+          <View style={{ width: 40 }} />
         )}
       </View>
 
-      {loading && !profileData ? (
-        <View style={styles.centerLoading}>
-          <ActivityIndicator color="#6366f1" size="large" />
-        </View>
-      ) : isBlocked ? (
-        /* ── Blocked state ── */
-        <View style={styles.blockedContainer}>
-          <Text style={styles.blockedIcon}>🚫</Text>
-          <Text style={styles.blockedTitle}>Profile Unavailable</Text>
-          <Text style={styles.blockedSub}>
-            You've blocked this user or they have blocked you.
-          </Text>
-          {isBlocked && profileData && (
-            <TouchableOpacity
-              style={styles.unblockBtn}
-              onPress={handleToggleBlock}
-              disabled={blockLoading}
+      {/* Avatar Container - Story Highlight Ring shown ONLY when user has active status/story */}
+      <View style={styles.avatarSection}>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => {
+            if (userStoryGroup && userStoryGroup.stories?.length > 0) {
+              setActiveStoryIdx(0);
+              setShowStoryViewer(true);
+            }
+          }}
+        >
+          {userStoryGroup && userStoryGroup.stories?.length > 0 ? (
+            <LinearGradient
+              colors={
+                userStoryGroup.hasUnviewed !== false
+                  ? ["#F9CE34", "#EE2A7B", "#6228D7"]
+                  : ["#475569", "#334155"]
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.gradientRing}
             >
-              <Text style={styles.unblockText}>Unblock</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      ) : (
-        <FlatList
-          data={posts}
-          keyExtractor={(item) => item._id}
-          ListHeaderComponent={
-            <View style={styles.profileHeader}>
-              {/* Banner */}
-              {profileData?.bannerUrl ? (
-                <Image source={{ uri: profileData.bannerUrl }} style={styles.bannerImage} />
-              ) : (
-                <View style={styles.bannerFallback} />
-              )}
-
-              {/* Avatar */}
-              <View style={styles.avatarWrapper}>
+              <View style={styles.avatarInnerContainer}>
                 {profileData?.avatarUrl ? (
-                  <Image source={{ uri: profileData.avatarUrl }} style={styles.avatarImage} />
+                  <Image source={{ uri: profileData.avatarUrl }} style={styles.avatarImg} />
                 ) : (
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>
-                      {profileData?.displayName?.[0] || profileData?.username?.[0] || "U"}
+                  <View style={styles.avatarFallback}>
+                    <Text style={styles.avatarInitials}>
+                      {(profileData?.displayName || profileData?.username || "U")
+                        .substring(0, 2)
+                        .toUpperCase()}
                     </Text>
                   </View>
                 )}
               </View>
-
-              {/* Name row */}
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
-                <Text style={styles.name}>
-                  {profileData?.displayName || profileData?.username}
-                </Text>
-                {profileData?.isVerified && <VerifiedBadge size={16} />}
-                {profileData?.isPrivate && (
-                  <Text style={styles.privateBadge}>🔒</Text>
+            </LinearGradient>
+          ) : (
+            <View style={styles.plainRing}>
+              <View style={styles.avatarInnerContainer}>
+                {profileData?.avatarUrl ? (
+                  <Image source={{ uri: profileData.avatarUrl }} style={styles.avatarImg} />
+                ) : (
+                  <View style={styles.avatarFallback}>
+                    <Text style={styles.avatarInitials}>
+                      {(profileData?.displayName || profileData?.username || "U")
+                        .substring(0, 2)
+                        .toUpperCase()}
+                    </Text>
+                  </View>
                 )}
               </View>
-              <Text style={styles.username}>@{profileData?.username}</Text>
-              {profileData?.bio ? (
-                <Text style={styles.bio}>{profileData.bio}</Text>
-              ) : null}
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
 
-              {/* Stats */}
-              <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>{posts.length}</Text>
-                  <Text style={styles.statLabel}>Posts</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>
-                    {relationship?.followersCount ?? profileData?.followers?.length ?? 0}
-                  </Text>
-                  <Text style={styles.statLabel}>Followers</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>
-                    {profileData?.following?.length ?? 0}
-                  </Text>
-                  <Text style={styles.statLabel}>Following</Text>
-                </View>
-              </View>
+      {/* Name & Verified Badge */}
+      <View style={styles.userInfoSection}>
+        <View style={styles.nameRow}>
+          <Text style={styles.nameText}>
+            {profileData?.displayName || profileData?.username}
+          </Text>
+          {profileData?.isVerified && <VerifiedBadge size={18} />}
+          {profileData?.isPrivate && (
+            <Ionicons name="lock-closed" size={16} color="#94A3B8" style={{ marginLeft: 4 }} />
+          )}
+        </View>
+      </View>
 
-              {/* Action Buttons */}
-              {!relationship?.isOwn && (
-                <View style={styles.actionRow}>
-                  <TouchableOpacity
-                    style={[styles.btn, followBtnStyle]}
-                    onPress={handleToggleFollow}
-                    disabled={followLoading}
-                  >
-                    <Text style={[styles.btnText, followTextStyle]}>
-                      {getFollowLabel()}
+      {/* Stats Counter Row */}
+      <View style={styles.statsRow}>
+        <View style={styles.statBox}>
+          <Text style={styles.statNumber}>{posts.length}</Text>
+          <Text style={styles.statLabel}>POSTS</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statBox}>
+          <Text style={styles.statNumber}>
+            {relationship?.followersCount ?? profileData?.followers?.length ?? 0}
+          </Text>
+          <Text style={styles.statLabel}>FOLLOWERS</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statBox}>
+          <Text style={styles.statNumber}>{profileData?.following?.length ?? 0}</Text>
+          <Text style={styles.statLabel}>FOLLOWING</Text>
+        </View>
+      </View>
+
+      {/* Action Buttons Row */}
+      {!relationship?.isOwn && (
+        <View style={styles.actionRow}>
+          {relationship?.isFollowing ? (
+            <TouchableOpacity
+              style={styles.followingOutlineBtn}
+              onPress={handleToggleFollow}
+              disabled={followLoading}
+              activeOpacity={0.8}
+            >
+              {followLoading ? (
+                <ActivityIndicator color="#EC4899" size="small" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-circle" size={18} color="#EC4899" />
+                  <Text style={styles.followingBtnText} numberOfLines={1} adjustsFontSizeToFit>
+                    Following
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.gradientBtnWrapper}
+              onPress={handleToggleFollow}
+              disabled={followLoading}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={["#C084FC", "#F97316"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.gradientBtn}
+              >
+                {followLoading ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <>
+                    <Ionicons name="person-add" size={18} color="#FFFFFF" />
+                    <Text style={styles.gradientBtnText} numberOfLines={1} adjustsFontSizeToFit>
+                      {relationship?.requested ? "Requested" : "Follow"}
                     </Text>
-                  </TouchableOpacity>
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
 
-                  <TouchableOpacity style={styles.chatBtn} onPress={handleStartChat}>
-                    <Text style={styles.chatBtnText}>💬 Message</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
+          <TouchableOpacity
+            style={styles.messageBtn}
+            onPress={handleStartChat}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="mail-outline" size={18} color="#FFFFFF" />
+            <Text style={styles.messageBtnText} numberOfLines={1} adjustsFontSizeToFit>
+              Message
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
-              {/* Private account restricted message */}
-              {relationship?.isPrivate && !relationship?.isFollowing && !relationship?.isOwn && (
-                <View style={styles.privateLock}>
-                  <Text style={styles.privateLockIcon}>🔒</Text>
-                  <Text style={styles.privateLockTitle}>Private Account</Text>
-                  <Text style={styles.privateLockSub}>
-                    Follow this account to see their posts.
-                  </Text>
-                </View>
-              )}
+      {/* Bio text if present */}
+      {profileData?.bio ? (
+        <Text style={styles.bioText}>{profileData.bio}</Text>
+      ) : null}
+
+      {/* Private account restriction banner */}
+      {relationship?.isPrivate && !relationship?.isFollowing && !relationship?.isOwn ? (
+        <View style={styles.privateLockBox}>
+          <Ionicons name="lock-closed-outline" size={36} color="#94A3B8" />
+          <Text style={styles.privateLockTitle}>This Account is Private</Text>
+          <Text style={styles.privateLockSub}>Follow this account to see their photos and posts.</Text>
+        </View>
+      ) : (
+        /* Post View Switcher Tabs */
+        <View style={styles.tabsRow}>
+          <TouchableOpacity
+            style={[styles.tabItem, activeTab === "grid" && styles.activeTabItem]}
+            onPress={() => setActiveTab("grid")}
+          >
+            <Ionicons
+              name={activeTab === "grid" ? "grid" : "grid-outline"}
+              size={22}
+              color={activeTab === "grid" ? "#FFFFFF" : "#64748B"}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabItem, activeTab === "feed" && styles.activeTabItem]}
+            onPress={() => setActiveTab("feed")}
+          >
+            <Ionicons
+              name={activeTab === "feed" ? "square" : "square-outline"}
+              size={22}
+              color={activeTab === "feed" ? "#FFFFFF" : "#64748B"}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabItem, activeTab === "saved" && styles.activeTabItem]}
+            onPress={() => setActiveTab("saved")}
+          >
+            <Ionicons
+              name={activeTab === "saved" ? "person" : "person-outline"}
+              size={22}
+              color={activeTab === "saved" ? "#FFFFFF" : "#64748B"}
+            />
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={[styles.container, { paddingTop }]}>
+      {loading && !profileData ? (
+        <View style={styles.centerLoading}>
+          <ActivityIndicator color="#EC4899" size="large" />
+        </View>
+      ) : isBlocked ? (
+        <View style={styles.blockedContainer}>
+          <Ionicons name="ban-outline" size={60} color="#EF4444" />
+          <Text style={styles.blockedTitle}>Profile Unavailable</Text>
+          <Text style={styles.blockedSub}>
+            You've blocked this user or they have blocked you.
+          </Text>
+          <TouchableOpacity
+            style={styles.unblockBtn}
+            onPress={handleToggleBlock}
+            disabled={blockLoading}
+          >
+            <Text style={styles.unblockText}>Unblock User</Text>
+          </TouchableOpacity>
+        </View>
+      ) : activeTab === "grid" && !(relationship?.isPrivate && !relationship?.isFollowing) ? (
+        <FlatList
+          key="user-grid-list"
+          data={displayGrid}
+          keyExtractor={(item) => item._id}
+          numColumns={3}
+          ListHeaderComponent={renderHeader}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }) => {
+            const mediaUri = item.mediaUrl || item.mediaUrls?.[0] || item.image || item.imageUrl;
+            return (
+              <TouchableOpacity
+                style={styles.gridThumbContainer}
+                activeOpacity={0.8}
+                onPress={() => setActiveTab("feed")}
+              >
+                {mediaUri ? (
+                  <Image source={{ uri: mediaUri }} style={styles.gridThumbImage} />
+                ) : (
+                  <View style={styles.gridThumbFallback}>
+                    <Text style={styles.gridThumbText} numberOfLines={3}>
+                      {item.content || item.text || "Post"}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          }}
+          ListEmptyComponent={
+            <View style={styles.emptyBox}>
+              <Ionicons name="images-outline" size={40} color="#475569" />
+              <Text style={styles.emptyText}>No posts yet.</Text>
             </View>
           }
+        />
+      ) : (
+        <FlatList
+          key="user-feed-list"
+          data={relationship?.isPrivate && !relationship?.isFollowing ? [] : posts}
+          keyExtractor={(item) => item._id}
+          ListHeaderComponent={renderHeader}
+          contentContainerStyle={styles.listContent}
           renderItem={({ item }) => <PostCard post={item} />}
           ListEmptyComponent={
             relationship?.isPrivate && !relationship?.isFollowing ? null : (
-              <Text style={styles.emptyText}>No posts yet.</Text>
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptyText}>No posts yet.</Text>
+              </View>
             )
           }
         />
       )}
 
-      {/* ── 3-dot Options Menu ── */}
+      {/* 3-dot Options Menu */}
       <Modal
         visible={menuVisible}
         transparent
@@ -308,7 +466,7 @@ export default function UserProfileScreen() {
           onPress={() => setMenuVisible(false)}
         >
           <View style={styles.menuSheet}>
-            <Text style={styles.menuHandle} />
+            <View style={styles.menuHandle} />
             <Text style={styles.menuTitle}>@{profileData?.username}</Text>
 
             <TouchableOpacity
@@ -316,9 +474,7 @@ export default function UserProfileScreen() {
               onPress={handleToggleBlock}
               disabled={blockLoading}
             >
-              <Text style={styles.menuItemIconDanger}>
-                {isBlocked ? "🔓" : "🚫"}
-              </Text>
+              <Ionicons name="ban-outline" size={20} color="#EF4444" />
               <Text style={styles.menuItemTextDanger}>
                 {blockLoading ? "Updating…" : isBlocked ? "Unblock User" : "Block User"}
               </Text>
@@ -328,14 +484,13 @@ export default function UserProfileScreen() {
               style={styles.menuItem}
               onPress={() => {
                 setMenuVisible(false);
-                // Navigate to report (use existing ReportModal logic)
                 Alert.alert("Report", `Report @${profileData?.username}?`, [
                   { text: "Cancel", style: "cancel" },
                   { text: "Report", style: "destructive", onPress: () => {} },
                 ]);
               }}
             >
-              <Text style={styles.menuItemIcon}>🚩</Text>
+              <Ionicons name="flag-outline" size={20} color="#E2E8F0" />
               <Text style={styles.menuItemText}>Report User</Text>
             </TouchableOpacity>
 
@@ -348,171 +503,407 @@ export default function UserProfileScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Active Story Viewer Modal */}
+      <Modal
+        visible={showStoryViewer}
+        animationType="fade"
+        transparent={false}
+        onRequestClose={() => setShowStoryViewer(false)}
+        statusBarTranslucent
+      >
+        <View style={{ flex: 1, backgroundColor: "#000" }}>
+          <StatusBar barStyle="light-content" backgroundColor="#000" />
+          {userStoryGroup && userStoryGroup.stories?.[activeStoryIdx] && (
+            <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+              <Image
+                source={{ uri: userStoryGroup.stories[activeStoryIdx].mediaUrl }}
+                style={{ width: "100%", height: "100%" }}
+                resizeMode="contain"
+              />
+              <TouchableOpacity
+                onPress={() => setShowStoryViewer(false)}
+                style={{
+                  position: "absolute",
+                  top: 50,
+                  right: 16,
+                  backgroundColor: "rgba(0,0,0,0.6)",
+                  padding: 10,
+                  borderRadius: 20,
+                }}
+              >
+                <Ionicons name="close" size={26} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0f172a" },
-  topHeader: {
+  container: {
+    flex: 1,
+    backgroundColor: "#11151D",
+  },
+  centerLoading: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  listContent: {
+    paddingBottom: 32,
+  },
+  headerContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    alignItems: "center",
+  },
+  topBar: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#1E232E",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitle: {
+    color: "#F8FAFC",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+
+  /* Avatar Section */
+  avatarSection: {
+    marginBottom: 14,
+    alignItems: "center",
+  },
+  gradientRing: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    padding: 3,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  plainRing: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    padding: 3,
+    backgroundColor: "#1E232E",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarInnerContainer: {
+    width: 98,
+    height: 98,
+    borderRadius: 49,
+    backgroundColor: "#11151D",
+    padding: 3,
+    overflow: "hidden",
+  },
+  avatarImg: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 46,
+  },
+  avatarFallback: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 46,
+    backgroundColor: "#252B37",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarInitials: {
+    color: "#F8FAFC",
+    fontSize: 28,
+    fontWeight: "bold",
+  },
+
+  /* User Info */
+  userInfoSection: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  nameRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    gap: 6,
+  },
+  nameText: {
+    color: "#FFFFFF",
+    fontSize: 22,
+    fontWeight: "800",
+    letterSpacing: -0.3,
+  },
+  dotsRow: {
+    flexDirection: "row",
+    gap: 6,
+    marginTop: 8,
+    alignItems: "center",
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#333D4F",
+  },
+  activeDot: {
+    backgroundColor: "#FFFFFF",
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  bioText: {
+    color: "#CBD5E1",
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 20,
+    marginTop: 12,
+    marginBottom: 16,
+    paddingHorizontal: 24,
+  },
+
+  /* Stats Row */
+  statsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+    width: "100%",
+    paddingVertical: 14,
+    marginBottom: 20,
+  },
+  statBox: {
+    flex: 1,
+    alignItems: "center",
+  },
+  statNumber: {
+    color: "#FFFFFF",
+    fontSize: 20,
+    fontWeight: "800",
+  },
+  statLabel: {
+    color: "#8E97A6",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    marginTop: 4,
+  },
+  statDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: "#232936",
+  },
+
+  /* Actions Row */
+  actionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    width: "100%",
+    paddingHorizontal: 4,
+    marginBottom: 20,
+  },
+  gradientBtnWrapper: {
+    flex: 1,
+    borderRadius: 9999,
+    overflow: "hidden",
+  },
+  gradientBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 9999,
+    shadowColor: "#C084FC",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  gradientBtnText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  followingOutlineBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 14,
+    borderRadius: 9999,
+    backgroundColor: "#1E232E",
+    borderWidth: 1.5,
+    borderColor: "#EC4899",
+    overflow: "hidden",
+  },
+  followingBtnText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  messageBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 9999,
+    backgroundColor: "#1E232E",
+    borderWidth: 1,
+    borderColor: "#2D3444",
+    overflow: "hidden",
+  },
+  messageBtnText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+
+  /* Private Lock Container */
+  privateLockBox: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 32,
+    marginVertical: 12,
+    backgroundColor: "#191E28",
+    borderRadius: 20,
+    width: "100%",
+    gap: 10,
+  },
+  privateLockTitle: {
+    color: "#F1F5F9",
+    fontSize: 17,
+    fontWeight: "700",
+  },
+  privateLockSub: {
+    color: "#64748B",
+    fontSize: 13,
+    textAlign: "center",
+  },
+
+  /* Tabs Switcher */
+  tabsRow: {
+    flexDirection: "row",
+    width: "100%",
     borderBottomWidth: 1,
-    borderBottomColor: "#1e293b",
+    borderBottomColor: "#1E232E",
+    marginBottom: 16,
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 14,
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+  },
+  activeTabItem: {
+    borderBottomColor: "#FFFFFF",
+  },
+
+  /* Grid Thumbnails */
+  gridThumbContainer: {
+    width: GRID_ITEM_SIZE,
+    height: GRID_ITEM_SIZE,
+    margin: 3,
+    borderRadius: 8,
+    overflow: "hidden",
+    backgroundColor: "#1E232E",
+  },
+  gridThumbImage: {
+    width: "100%",
+    height: "100%",
+  },
+  gridThumbFallback: {
+    flex: 1,
+    padding: 8,
+    backgroundColor: "#1E232E",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  gridThumbText: {
+    color: "#94A3B8",
+    fontSize: 11,
+    textAlign: "center",
+  },
+
+  emptyBox: {
+    padding: 40,
+    alignItems: "center",
     gap: 12,
   },
-  backBtn: { paddingVertical: 4 },
-  backText: { color: "#6366f1", fontSize: 16, fontWeight: "bold" },
-  headerTitle: { color: "#fff", fontSize: 16, fontWeight: "bold", flex: 1 },
-  menuBtn: { padding: 4 },
-  menuDots: { color: "#94a3b8", fontSize: 22, fontWeight: "bold" },
-  centerLoading: { flex: 1, justifyContent: "center", alignItems: "center" },
+  emptyText: {
+    color: "#64748B",
+    fontSize: 14,
+    textAlign: "center",
+  },
 
-  /* ── Blocked state ── */
+  /* Blocked State */
   blockedContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     padding: 32,
-    gap: 10,
+    gap: 12,
   },
-  blockedIcon: { fontSize: 52 },
-  blockedTitle: { color: "#f1f5f9", fontSize: 20, fontWeight: "bold" },
+  blockedTitle: { color: "#F1F5F9", fontSize: 20, fontWeight: "bold" },
   blockedSub: {
-    color: "#64748b",
+    color: "#64748B",
     fontSize: 14,
     textAlign: "center",
     lineHeight: 20,
   },
   unblockBtn: {
     marginTop: 12,
-    backgroundColor: "#334155",
+    backgroundColor: "#1E232E",
     paddingHorizontal: 28,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  unblockText: { color: "#fff", fontWeight: "bold" },
-
-  /* ── Profile card ── */
-  profileHeader: {
-    alignItems: "center",
-    backgroundColor: "#1e293b",
-    margin: 16,
-    borderRadius: 20,
-    overflow: "hidden",
-    paddingBottom: 20,
-  },
-  bannerImage: { width: "100%", height: 100 },
-  bannerFallback: { width: "100%", height: 100, backgroundColor: "#334155" },
-  avatarWrapper: { marginTop: -40, marginBottom: 8 },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#6366f1",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 4,
-    borderColor: "#1e293b",
-  },
-  avatarImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 4,
-    borderColor: "#1e293b",
-  },
-  avatarText: { color: "#fff", fontWeight: "bold", fontSize: 32 },
-  name: { color: "#fff", fontSize: 20, fontWeight: "bold" },
-  privateBadge: { fontSize: 14 },
-  username: { color: "#64748b", fontSize: 14, marginBottom: 8 },
-  bio: {
-    color: "#cbd5e1",
-    fontSize: 14,
-    textAlign: "center",
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
-  statsRow: { flexDirection: "row", gap: 32, marginBottom: 20 },
-  statItem: { alignItems: "center" },
-  statNumber: { color: "#fff", fontSize: 18, fontWeight: "bold" },
-  statLabel: { color: "#64748b", fontSize: 12 },
-
-  /* ── Buttons ── */
-  actionRow: {
-    flexDirection: "row",
-    gap: 12,
-    width: "90%",
-    marginBottom: 12,
-  },
-  btn: {
-    flex: 1,
     paddingVertical: 12,
-    borderRadius: 16,
-    alignItems: "center",
-  },
-  btnPrimary: { backgroundColor: "#6366f1" },
-  btnOutline: {
-    backgroundColor: "transparent",
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#475569",
+    borderColor: "#2D3444",
   },
-  btnRequested: {
-    backgroundColor: "#1e3a5f",
-    borderWidth: 1,
-    borderColor: "#3b82f6",
-  },
-  btnText: { fontWeight: "bold", fontSize: 14 },
-  btnPrimaryText: { color: "#fff" },
-  btnOutlineText: { color: "#94a3b8" },
-  chatBtn: {
-    flex: 1,
-    backgroundColor: "#334155",
-    paddingVertical: 12,
-    borderRadius: 16,
-    alignItems: "center",
-  },
-  chatBtnText: { color: "#fff", fontWeight: "bold", fontSize: 14 },
+  unblockText: { color: "#FFFFFF", fontWeight: "bold" },
 
-  /* ── Private lock ── */
-  privateLock: {
-    alignItems: "center",
-    padding: 24,
-    gap: 6,
-    marginTop: 8,
-  },
-  privateLockIcon: { fontSize: 40 },
-  privateLockTitle: { color: "#f1f5f9", fontSize: 18, fontWeight: "bold" },
-  privateLockSub: { color: "#64748b", fontSize: 14, textAlign: "center" },
-
-  emptyText: { color: "#64748b", textAlign: "center", marginTop: 20 },
-
-  /* ── Options modal ── */
+  /* Menu Modal */
   menuOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "flex-end",
   },
   menuSheet: {
-    backgroundColor: "#1e293b",
+    backgroundColor: "#1B202B",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingBottom: 34,
     paddingTop: 12,
     paddingHorizontal: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#2D3444",
   },
   menuHandle: {
     width: 40,
     height: 4,
-    backgroundColor: "#475569",
+    backgroundColor: "#333D4F",
     borderRadius: 2,
     alignSelf: "center",
     marginBottom: 16,
   },
   menuTitle: {
-    color: "#94a3b8",
+    color: "#94A3B8",
     fontSize: 13,
     fontWeight: "600",
     paddingHorizontal: 4,
@@ -527,12 +918,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   menuItemCancel: {
-    marginTop: 4,
-    backgroundColor: "#334155",
+    marginTop: 8,
+    backgroundColor: "#252B37",
     justifyContent: "center",
   },
-  menuItemIcon: { fontSize: 18 },
-  menuItemIconDanger: { fontSize: 18 },
-  menuItemText: { color: "#e2e8f0", fontSize: 16, fontWeight: "500" },
-  menuItemTextDanger: { color: "#f87171", fontSize: 16, fontWeight: "600" },
+  menuItemText: { color: "#E2E8F0", fontSize: 16, fontWeight: "500" },
+  menuItemTextDanger: { color: "#EF4444", fontSize: 16, fontWeight: "600" },
 });

@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   StyleSheet,
   View,
   FlatList,
   ActivityIndicator,
-  SafeAreaView,
   StatusBar,
   RefreshControl,
   TouchableOpacity,
@@ -21,6 +20,17 @@ export default function FeedScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [visiblePostId, setVisiblePostId] = useState<string | null>(null);
+
+  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    if (viewableItems.length > 0) {
+      setVisiblePostId(viewableItems[0].item._id);
+    }
+  }).current;
+
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 60,
+  }).current;
 
   useEffect(() => {
     loadFeed(true, activeTab);
@@ -33,43 +43,16 @@ export default function FeedScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#0f172a" translucent={false} />
+      
+      {/* Sticky Top Header */}
       <MobileHeader />
 
-      {/* Stories */}
-      <StoryBar />
-
-      {/* Filter Bar */}
-      <View style={styles.filterBar}>
-        <TouchableOpacity
-          style={[styles.filterBtn, activeTab === "all" && styles.filterBtnActive]}
-          onPress={() => setActiveTab("all")}
-        >
-          <Text style={[styles.filterText, activeTab === "all" && styles.filterTextActive]}>
-            ✨ For You
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.filterBtn, activeTab === "following" && styles.filterBtnActive]}
-          onPress={() => setActiveTab("following")}
-        >
-          <Text style={[styles.filterText, activeTab === "following" && styles.filterTextActive]}>
-            👥 Following
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Feed List */}
+      {/* Feed List with Stories & Filter inside ListHeaderComponent */}
       {loading && posts.length === 0 ? (
         <View style={styles.centerLoading}>
           <ActivityIndicator size="large" color="#6366f1" />
-        </View>
-      ) : posts.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>🌟</Text>
-          <Text style={styles.emptyTitle}>No posts yet</Text>
-          <Text style={styles.emptySub}>Be the first to post something!</Text>
         </View>
       ) : (
         <FlatList
@@ -78,11 +61,46 @@ export default function FeedScreen() {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#6366f1" />
           }
-          renderItem={({ item }) => <PostCard post={item} />}
+          ListHeaderComponent={
+            <>
+              {/* Stories */}
+              <StoryBar />
+
+              {/* Filter Bar */}
+              <View style={styles.filterBar}>
+                <TouchableOpacity
+                  style={[styles.filterBtn, activeTab === "all" && styles.filterBtnActive]}
+                  onPress={() => setActiveTab("all")}
+                >
+                  <Text style={[styles.filterText, activeTab === "all" && styles.filterTextActive]}>
+                    ✨ For You
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterBtn, activeTab === "following" && styles.filterBtnActive]}
+                  onPress={() => setActiveTab("following")}
+                >
+                  <Text style={[styles.filterText, activeTab === "following" && styles.filterTextActive]}>
+                    👥 Following
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          }
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
+          renderItem={({ item }) => <PostCard post={item} isVisible={item._id === visiblePostId} />}
           onEndReached={() => {
             if (!loading && hasMore) loadFeed(false, activeTab);
           }}
           onEndReachedThreshold={0.5}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyIcon}>🌟</Text>
+              <Text style={styles.emptyTitle}>No posts yet</Text>
+              <Text style={styles.emptySub}>Be the first to post something!</Text>
+            </View>
+          }
         />
       )}
 
@@ -99,7 +117,7 @@ export default function FeedScreen() {
         visible={createModalVisible}
         onClose={() => setCreateModalVisible(false)}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -12,11 +12,14 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import api from "../../api";
 
+import { useNotificationStore } from "../../notificationStore";
+
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
   const paddingTop = Math.max(insets.top, 12);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const markNotificationsRead = useNotificationStore((s) => s.markNotificationsRead);
 
   useEffect(() => {
     loadNotifications();
@@ -27,8 +30,8 @@ export default function NotificationsScreen() {
     try {
       const { data } = await api.get("/notifications");
       setNotifications(data.notifications || []);
-      // Mark as read
-      await api.put("/notifications/read");
+      // Mark as read in API and store
+      await markNotificationsRead();
     } catch (err) {
       console.error("Notifications load error", err);
     } finally {

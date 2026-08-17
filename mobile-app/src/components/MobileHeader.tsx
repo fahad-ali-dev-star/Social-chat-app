@@ -11,6 +11,7 @@ import {
   Platform,
   StatusBar as RNStatusBar,
 } from "react-native";
+import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "../authStore";
 import { useNotificationStore } from "../notificationStore";
@@ -60,6 +61,11 @@ export default function MobileHeader({ title }: { title?: string }) {
     setMsgModalOpen(true);
   };
 
+  const handleLogout = async () => {
+    await logout();
+    router.replace("/");
+  };
+
   return (
     <View style={styles.container}>
       {/* Real-Time Floating Alert Toast */}
@@ -92,7 +98,12 @@ export default function MobileHeader({ title }: { title?: string }) {
       <View style={[styles.navbar, { paddingTop }]}>
         {/* App Logo */}
         <View style={styles.logoRow}>
-          <Text style={styles.logoText}>🐝 Buzz Chat</Text>
+          <Image
+            source={require("../../assets/images/icon.png")}
+            style={styles.headerLogoImage}
+            resizeMode="contain"
+          />
+          <Text style={styles.logoText}>Buzz Chat</Text>
 
           {/* Message Counter Badge right on App Logo / Header */}
           <TouchableOpacity
@@ -131,7 +142,7 @@ export default function MobileHeader({ title }: { title?: string }) {
 
           {/* Logout Button */}
           {user && (
-            <TouchableOpacity onPress={logout} style={styles.btnLogout}>
+            <TouchableOpacity onPress={handleLogout} style={styles.btnLogout}>
               <Text style={styles.logoutText}>Logout</Text>
             </TouchableOpacity>
           )}
@@ -334,6 +345,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  headerLogoImage: {
+    width: 30,
+    height: 30,
+    borderRadius: 7,
   },
   logoText: {
     fontSize: 18,

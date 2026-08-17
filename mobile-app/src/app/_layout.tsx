@@ -11,9 +11,12 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const user = useAuthStore((s) => s.user);
+  const fetchMe = useAuthStore((s) => s.fetchMe);
 
   useEffect(() => {
-    SplashScreen.hideAsync();
+    fetchMe().finally(() => {
+      SplashScreen.hideAsync().catch(() => {});
+    });
   }, []);
 
   useEffect(() => {

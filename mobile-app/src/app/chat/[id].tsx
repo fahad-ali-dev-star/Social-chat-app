@@ -14,10 +14,12 @@ import {
   StatusBar as RNStatusBar,
   Modal,
   Alert,
+  Keyboard,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
+import { Video, ResizeMode, Audio } from "expo-av";
 import api from "../../api";
 import { useMessageStore } from "../../messageStore";
 import { useAuthStore } from "../../authStore";
@@ -31,6 +33,79 @@ function formatBubbleTime(iso?: string) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function VoiceNotePlayer({ uri, isMine }: { uri: string; isMine: boolean }) {
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [pos, setPos] = useState(0);
+  const [dur, setDur] = useState(1);
+
+  useEffect(() => {
+    return () => {
+      sound?.unloadAsync();
+    };
+  }, [sound]);
+
+  const togglePlay = async () => {
+    try {
+      if (sound) {
+        if (isPlaying) {
+          await sound.pauseAsync();
+          setIsPlaying(false);
+        } else {
+          await sound.playAsync();
+          setIsPlaying(true);
+        }
+      } else {
+        const { sound: newSound } = await Audio.Sound.createAsync(
+          { uri },
+          { shouldPlay: true },
+          (status) => {
+            if (status.isLoaded) {
+              setPos(status.positionMillis || 0);
+              setDur(status.durationMillis || 1);
+              setIsPlaying(status.isPlaying);
+              if (status.didJustFinish) {
+                setIsPlaying(false);
+                setPos(0);
+              }
+            }
+          }
+        );
+        setSound(newSound);
+        setIsPlaying(true);
+      }
+    } catch (err) {
+      console.error("Audio play error", err);
+    }
+  };
+
+  const progress = Math.min(100, Math.max(0, (pos / dur) * 100));
+
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 4, minWidth: 170 }}>
+      <TouchableOpacity
+        onPress={togglePlay}
+        style={{
+          width: 34,
+          height: 34,
+          borderRadius: 17,
+          backgroundColor: isMine ? "rgba(255,255,255,0.25)" : "rgba(99,102,241,0.2)",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Text style={{ fontSize: 14 }}>{isPlaying ? "⏸️" : "▶️"}</Text>
+      </TouchableOpacity>
+      <View style={{ flex: 1, height: 4, backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 2, overflow: "hidden" }}>
+        <View style={{ width: `${progress}%`, height: "100%", backgroundColor: isMine ? "#fff" : "#6366f1" }} />
+      </View>
+      <Text style={{ fontSize: 11, color: isMine ? "#e2e8f0" : "#94a3b8" }}>
+        {Math.floor(pos / 1000)}s
+      </Text>
+    </View>
+  );
 }
 
 export default function ChatScreen() {
@@ -53,11 +128,18 @@ export default function ChatScreen() {
   const [mediaUrl, setMediaUrl] = useState("");
   const [mediaType, setMediaType] = useState("");
   const [replyingTo, setReplyingTo] = useState<any>(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   // Context Menu State
   const [selectedMsg, setSelectedMsg] = useState<any>(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const [muted, setMuted] = useState(false);
+
+  // Voice Recording State
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const timerRef = useRef<any>(null);
 
   const flatListRef = useRef<FlatList>(null);
 
@@ -65,7 +147,30 @@ export default function ChatScreen() {
     insets.top,
     Platform.OS === "android" ? RNStatusBar.currentHeight || 12 : 12
   );
-  const paddingBottom = Math.max(insets.bottom + 10, 20);
+  const paddingBottom = keyboardVisible ? 0 : Math.max(insets.bottom, 17);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => {
+        setKeyboardVisible(true);
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 80);
+      }
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => {
+        setKeyboardVisible(false);
+      }
+    );
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (id) {
@@ -90,10 +195,28 @@ export default function ChatScreen() {
     }
   };
 
-  const handlePickImage = async () => {
+  const handleTakePhoto = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission Required", "Camera access is needed to take photos.");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["images"],
+      quality: 0.8,
+      allowsEditing: true,
+    });
+
+    if (!result.canceled && result.assets?.[0]?.uri) {
+      await processImageUpload(result.assets[0].uri);
+    }
+  };
+
+  const handlePickFromLibrary = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("Permission Required", "Allow access to select photos.");
+      Alert.alert("Permission Required", "Allow photo library access to select photos.");
       return;
     }
 
@@ -103,28 +226,52 @@ export default function ChatScreen() {
     });
 
     if (!result.canceled && result.assets?.[0]?.uri) {
-      const uri = result.assets[0].uri;
-      setUploading(true);
-      try {
-        const formData = new FormData();
-        const filename = uri.split("/").pop() || "photo.jpg";
-        const match = /\.(\w+)$/.exec(filename);
-        const fileType = match ? `image/${match[1]}` : `image/jpeg`;
-
-        formData.append("file", { uri, name: filename, type: fileType } as any);
-
-        const { data } = await api.post("/upload", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-
-        setMediaUrl(data.url);
-        setMediaType("image");
-      } catch (err) {
-        Alert.alert("Upload Failed", "Could not upload image.");
-      } finally {
-        setUploading(false);
-      }
+      await processImageUpload(result.assets[0].uri);
     }
+  };
+
+  const processImageUpload = async (uri: string) => {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      const filename = uri.split("/").pop() || "photo.jpg";
+      const match = /\.(\w+)$/.exec(filename);
+      const fileType = match ? `image/${match[1]}` : `image/jpeg`;
+
+      formData.append("file", { uri, name: filename, type: fileType } as any);
+
+      const { data } = await api.post("/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      setMediaUrl(data.url);
+      setMediaType("image");
+    } catch (err) {
+      Alert.alert("Upload Failed", "Could not upload image.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handlePickImage = () => {
+    Alert.alert(
+      "Attach Photo",
+      "Choose an option:",
+      [
+        {
+          text: "📷 Take Photo (Camera)",
+          onPress: handleTakePhoto,
+        },
+        {
+          text: "🖼️ Choose from Gallery",
+          onPress: handlePickFromLibrary,
+        },
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+      ]
+    );
   };
 
   const handleSend = async () => {
@@ -150,6 +297,86 @@ export default function ChatScreen() {
     } finally {
       setSending(false);
     }
+  };
+
+  const startRecording = async () => {
+    try {
+      const perm = await Audio.requestPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert("Permission Required", "Microphone permission is needed to record voice notes.");
+        return;
+      }
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+      const { recording: newRecording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      setRecording(newRecording);
+      setIsRecording(true);
+      setRecordingSeconds(0);
+
+      timerRef.current = setInterval(() => {
+        setRecordingSeconds((s) => s + 1);
+      }, 1000);
+    } catch (err) {
+      console.error("Failed to start recording", err);
+      Alert.alert("Error", "Could not start audio recording.");
+    }
+  };
+
+  const stopRecordingAndSend = async () => {
+    if (!recording) return;
+    if (timerRef.current) clearInterval(timerRef.current);
+    setIsRecording(false);
+    setSending(true);
+
+    try {
+      await recording.stopAndUnloadAsync();
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+      const uri = recording.getURI();
+      setRecording(null);
+
+      if (uri && id) {
+        const formData = new FormData();
+        const filename = `voice_${Date.now()}.m4a`;
+        formData.append("file", {
+          uri,
+          name: filename,
+          type: "audio/m4a",
+        } as any);
+
+        const { data } = await api.post("/upload", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        await sendMessage(id, "🎤 Voice note", data.url, "audio", replyingTo?._id || null);
+        setReplyingTo(null);
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    } catch (err) {
+      console.error("Failed to send voice note", err);
+      Alert.alert("Failed", "Could not send voice note.");
+    } finally {
+      setSending(false);
+      setRecordingSeconds(0);
+    }
+  };
+
+  const cancelRecording = async () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (recording) {
+      try {
+        await recording.stopAndUnloadAsync();
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+      } catch (e) {}
+    }
+    setRecording(null);
+    setIsRecording(false);
+    setRecordingSeconds(0);
   };
 
   const handleToggleMute = async () => {
@@ -246,7 +473,7 @@ export default function ChatScreen() {
       {/* ── Chat Messages ── */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         {messagesLoading && messages.length === 0 ? (
           <View style={styles.centerLoading}>
@@ -314,13 +541,17 @@ export default function ChatScreen() {
                         isMine ? styles.myBubble : styles.theirBubble,
                       ]}
                     >
-                      {/* Image Attachment */}
+                      {/* Image or Audio Attachment */}
                       {item.mediaUrl && !isDeleted && (
-                        <Image
-                          source={{ uri: item.mediaUrl }}
-                          style={styles.mediaImage}
-                          resizeMode="cover"
-                        />
+                        (item.mediaType === "audio" || (item.body === "🎤 Voice note" && !item.mediaUrl.match(/\.(png|jpg|jpeg|gif|webp)$/i))) ? (
+                          <VoiceNotePlayer uri={item.mediaUrl} isMine={isMine} />
+                        ) : (
+                          <Image
+                            source={{ uri: item.mediaUrl }}
+                            style={styles.mediaImage}
+                            resizeMode="cover"
+                          />
+                        )
                       )}
 
                       {/* Text Body */}
@@ -426,35 +657,65 @@ export default function ChatScreen() {
 
         {/* ── Input Bar ── */}
         <View style={[styles.inputContainer, { paddingBottom }]}>
-          {/* Photo Picker Button */}
-          <TouchableOpacity
-            style={styles.photoBtn}
-            onPress={handlePickImage}
-            disabled={uploading}
-          >
-            <Text style={styles.photoIcon}>📷</Text>
-          </TouchableOpacity>
+          {isRecording ? (
+            /* Recording Mode Bar */
+            <View style={styles.recordingRow}>
+              <TouchableOpacity onPress={cancelRecording} style={styles.cancelRecBtn}>
+                <Text style={styles.cancelRecText}>✕ Cancel</Text>
+              </TouchableOpacity>
+              <View style={styles.recordingTimerBadge}>
+                <Text style={styles.recordingDot}>🔴</Text>
+                <Text style={styles.recordingTimerText}>
+                  {Math.floor(recordingSeconds / 60)}:{String(recordingSeconds % 60).padStart(2, "0")}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={stopRecordingAndSend} style={styles.sendVoiceBtn}>
+                <Text style={styles.sendVoiceText}>Send 🎙️</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            /* Normal Input Bar */
+            <>
+              {/* Photo Picker Button */}
+              <TouchableOpacity
+                style={styles.photoBtn}
+                onPress={handlePickImage}
+                disabled={uploading}
+              >
+                <Text style={styles.photoIcon}>📷</Text>
+              </TouchableOpacity>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Message..."
-            placeholderTextColor="#64748b"
-            value={text}
-            onChangeText={setText}
-            multiline
-          />
+              {/* Voice Record Button */}
+              <TouchableOpacity
+                style={styles.voiceBtn}
+                onPress={startRecording}
+                disabled={uploading || sending}
+              >
+                <Text style={styles.voiceIcon}>🎤</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.sendBtn, (!text.trim() && !mediaUrl) && { opacity: 0.5 }]}
-            onPress={handleSend}
-            disabled={sending || (!text.trim() && !mediaUrl)}
-          >
-            {sending ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <Text style={styles.sendText}>Send</Text>
-            )}
-          </TouchableOpacity>
+              <TextInput
+                style={styles.input}
+                placeholder="Message..."
+                placeholderTextColor="#64748b"
+                value={text}
+                onChangeText={setText}
+                multiline
+              />
+
+              <TouchableOpacity
+                style={[styles.sendBtn, (!text.trim() && !mediaUrl) && { opacity: 0.5 }]}
+                onPress={handleSend}
+                disabled={sending || (!text.trim() && !mediaUrl)}
+              >
+                {sending ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.sendText}>Send</Text>
+                )}
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </KeyboardAvoidingView>
 
@@ -789,35 +1050,35 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    gap: 10,
+    paddingHorizontal: 8,
+    paddingTop: 2,
+    gap: 6,
     borderTopWidth: 1,
     borderTopColor: "#1e293b",
     backgroundColor: "#0f172a",
   },
   photoBtn: {
-    padding: 8,
+    padding: 5,
     borderRadius: 12,
     backgroundColor: "#1e293b",
   },
   photoIcon: {
-    fontSize: 18,
+    fontSize: 17,
   },
   input: {
     flex: 1,
     backgroundColor: "#1e293b",
     color: "#fff",
     borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 15,
-    maxHeight: 100,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    fontSize: 14,
+    maxHeight: 90,
   },
   sendBtn: {
     backgroundColor: "#6366f1",
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
@@ -894,5 +1155,61 @@ const styles = StyleSheet.create({
     color: "#94a3b8",
     fontSize: 15,
     fontWeight: "bold",
+  },
+  voiceBtn: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    marginRight: 6,
+  },
+  voiceIcon: {
+    fontSize: 18,
+  },
+  recordingRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 8,
+    height: 40,
+  },
+  cancelRecBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: "rgba(239, 68, 68, 0.15)",
+  },
+  cancelRecText: {
+    color: "#ef4444",
+    fontWeight: "bold",
+    fontSize: 13,
+  },
+  recordingTimerBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  recordingDot: {
+    fontSize: 10,
+  },
+  recordingTimerText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+  sendVoiceBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    backgroundColor: "#6366f1",
+  },
+  sendVoiceText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 13,
   },
 });
