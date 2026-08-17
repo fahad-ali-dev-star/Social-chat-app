@@ -12,6 +12,7 @@ import {
   TextInput,
   Alert,
   ScrollView,
+  Switch,
 } from "react-native";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -35,6 +36,7 @@ export default function ProfileScreen() {
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [bannerUrl, setBannerUrl] = useState("");
+  const [isPrivate, setIsPrivate] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -58,6 +60,7 @@ export default function ProfileScreen() {
       setBio(profRes.data.user?.bio || "");
       setAvatarUrl(profRes.data.user?.avatarUrl || "");
       setBannerUrl(profRes.data.user?.bannerUrl || "");
+      setIsPrivate(Boolean(profRes.data.user?.isPrivate));
     } catch (err) {
       console.error("Profile load error", err);
     } finally {
@@ -113,8 +116,10 @@ export default function ProfileScreen() {
         bio: bio.trim(),
         avatarUrl,
         bannerUrl,
+        isPrivate,
       });
       setProfileData(data.user);
+      setIsPrivate(Boolean(data.user?.isPrivate));
       await fetchMe();
       setEditVisible(false);
     } catch (err) {
@@ -179,9 +184,12 @@ export default function ProfileScreen() {
                 </View>
 
                 {/* Info */}
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
                   <Text style={styles.name}>{profileData?.displayName || profileData?.username}</Text>
                   {profileData?.isVerified && <VerifiedBadge size={16} />}
+                  {profileData?.isPrivate && (
+                    <Text style={styles.privateBadge}>🔒</Text>
+                  )}
                 </View>
                 <Text style={styles.username}>@{profileData?.username}</Text>
                 {profileData?.bio ? <Text style={styles.bio}>{profileData.bio}</Text> : null}
@@ -288,6 +296,26 @@ export default function ProfileScreen() {
               placeholderTextColor="#64748b"
               multiline
             />
+
+            {/* Private / Public Account Toggle */}
+            <View style={styles.privacyRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.privacyLabel}>
+                  {isPrivate ? "🔒 Private Account" : "🌐 Public Account"}
+                </Text>
+                <Text style={styles.privacyHint}>
+                  {isPrivate
+                    ? "Only approved followers can see your posts."
+                    : "Anyone can see your posts and follow you."}
+                </Text>
+              </View>
+              <Switch
+                value={isPrivate}
+                onValueChange={setIsPrivate}
+                trackColor={{ false: "#334155", true: "#6366f1" }}
+                thumbColor={isPrivate ? "#a5b4fc" : "#94a3b8"}
+              />
+            </View>
 
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditVisible(false)}>
@@ -476,6 +504,30 @@ const styles = StyleSheet.create({
     color: "#94a3b8",
     fontSize: 13,
     marginBottom: 6,
+  },
+  privateBadge: {
+    fontSize: 14,
+  },
+  privacyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#0f172a",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 16,
+    gap: 12,
+  },
+  privacyLabel: {
+    color: "#e2e8f0",
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  privacyHint: {
+    color: "#64748b",
+    fontSize: 12,
+    lineHeight: 16,
   },
   uploadRow: {
     flexDirection: "row",
