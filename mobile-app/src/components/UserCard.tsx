@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { StyleSheet, Text, View, TouchableOpacity, Image } from "react-native";
 import { router } from "expo-router";
 import api from "../api";
+import VerifiedBadge from "./VerifiedBadge";
 
 interface Props {
   user: any;
@@ -33,21 +34,19 @@ export default function UserCard({ user, onFollowToggle }: Props) {
 
   return (
     <TouchableOpacity style={styles.card} onPress={handlePress}>
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>
-          {user.displayName?.[0] || user.username?.[0] || "U"}
-        </Text>
-      </View>
+      {user.avatarUrl ? (
+        <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} />
+      ) : (
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
+            {user.displayName?.[0] || user.username?.[0] || "U"}
+          </Text>
+        </View>
+      )}
       <View style={styles.info}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
           <Text style={styles.name}>{user.displayName || user.username}</Text>
-          {user.isVerified && (
-            <Image
-              source={require("@/assets/images/5c6a9983d0c9eef8b3912a451cc8a27d.png")}
-              style={{ width: 14, height: 14 }}
-              resizeMode="contain"
-            />
-          )}
+          {user.isVerified && <VerifiedBadge size={14} />}
         </View>
         <Text style={styles.username}>@{user.username}</Text>
         {user.bio ? <Text style={styles.bio} numberOfLines={1}>{user.bio}</Text> : null}
@@ -83,6 +82,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#6366f1",
     justifyContent: "center",
     alignItems: "center",
+  },
+  avatarImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
   },
   avatarText: {
     color: "#fff",

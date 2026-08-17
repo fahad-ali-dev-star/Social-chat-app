@@ -13,6 +13,7 @@ import { usePostStore } from "../postStore";
 import { useAuthStore } from "../authStore";
 import CommentModal from "./CommentModal";
 import ReportModal from "./ReportModal";
+import VerifiedBadge from "./VerifiedBadge";
 
 interface Props {
   post: any;
@@ -68,23 +69,21 @@ export default function PostCard({ post }: Props) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.authorSection} onPress={handleOpenProfile}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {post.author?.displayName?.[0] || post.author?.username?.[0] || "U"}
-            </Text>
-          </View>
+          {post.author?.avatarUrl ? (
+            <Image source={{ uri: post.author.avatarUrl }} style={styles.avatarImage} />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {post.author?.displayName?.[0] || post.author?.username?.[0] || "U"}
+              </Text>
+            </View>
+          )}
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
               <Text style={styles.authorName}>
                 {post.author?.displayName || post.author?.username}
               </Text>
-              {post.author?.isVerified && (
-                <Image
-                  source={require("@/assets/images/5c6a9983d0c9eef8b3912a451cc8a27d.png")}
-                  style={{ width: 14, height: 14 }}
-                  resizeMode="contain"
-                />
-              )}
+              {post.author?.isVerified && <VerifiedBadge size={14} />}
             </View>
             <Text style={styles.username}>@{post.author?.username} · {formattedDate}</Text>
           </View>
@@ -208,6 +207,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#6366f1",
     justifyContent: "center",
     alignItems: "center",
+  },
+  avatarImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   avatarText: {
     color: "#fff",

@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View, TouchableOpacity, Image } from "react-native";
 import { router } from "expo-router";
 import { useAuthStore } from "../authStore";
+import VerifiedBadge from "./VerifiedBadge";
 
 interface Props {
   conversation: any;
@@ -22,23 +23,21 @@ export default function ConversationItem({ conversation }: Props) {
 
   return (
     <TouchableOpacity style={styles.container} onPress={handlePress}>
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>
-          {recipient?.displayName?.[0] || recipient?.username?.[0] || "U"}
-        </Text>
-      </View>
+      {recipient?.avatarUrl ? (
+        <Image source={{ uri: recipient.avatarUrl }} style={styles.avatarImage} />
+      ) : (
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
+            {recipient?.displayName?.[0] || recipient?.username?.[0] || "U"}
+          </Text>
+        </View>
+      )}
 
       <View style={styles.content}>
         <View style={styles.topRow}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
             <Text style={styles.name}>{recipient?.displayName || recipient?.username || "User"}</Text>
-            {recipient?.isVerified && (
-              <Image
-                source={require("@/assets/images/5c6a9983d0c9eef8b3912a451cc8a27d.png")}
-                style={{ width: 14, height: 14 }}
-                resizeMode="contain"
-              />
-            )}
+            {recipient?.isVerified && <VerifiedBadge size={14} />}
           </View>
         </View>
         <Text style={[styles.lastMsg, unread > 0 && styles.unreadMsg]} numberOfLines={1}>
@@ -72,6 +71,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#6366f1",
     justifyContent: "center",
     alignItems: "center",
+  },
+  avatarImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
   },
   avatarText: {
     color: "#fff",

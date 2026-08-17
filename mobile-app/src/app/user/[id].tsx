@@ -12,6 +12,7 @@ import {
 import { useLocalSearchParams, router } from "expo-router";
 import api from "../../api";
 import PostCard from "../../components/PostCard";
+import VerifiedBadge from "../../components/VerifiedBadge";
 import { useMessageStore } from "../../messageStore";
 
 export default function UserProfileScreen() {
@@ -89,21 +90,29 @@ export default function UserProfileScreen() {
           keyExtractor={(item) => item._id}
           ListHeaderComponent={
             <View style={styles.profileHeader}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {profileData?.displayName?.[0] || profileData?.username?.[0] || "U"}
-                </Text>
+              {/* Banner */}
+              {profileData?.bannerUrl ? (
+                <Image source={{ uri: profileData.bannerUrl }} style={styles.bannerImage} />
+              ) : (
+                <View style={styles.bannerFallback} />
+              )}
+
+              {/* Avatar */}
+              <View style={styles.avatarWrapper}>
+                {profileData?.avatarUrl ? (
+                  <Image source={{ uri: profileData.avatarUrl }} style={styles.avatarImage} />
+                ) : (
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>
+                      {profileData?.displayName?.[0] || profileData?.username?.[0] || "U"}
+                    </Text>
+                  </View>
+                )}
               </View>
 
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 12 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
                 <Text style={styles.name}>{profileData?.displayName || profileData?.username}</Text>
-                {profileData?.isVerified && (
-                  <Image
-                    source={require("@/assets/images/5c6a9983d0c9eef8b3912a451cc8a27d.png")}
-                    style={{ width: 16, height: 16 }}
-                    resizeMode="contain"
-                  />
-                )}
+                {profileData?.isVerified && <VerifiedBadge size={16} />}
               </View>
               <Text style={styles.username}>@{profileData?.username}</Text>
               {profileData?.bio ? <Text style={styles.bio}>{profileData.bio}</Text> : null}
@@ -197,7 +206,21 @@ const styles = StyleSheet.create({
     backgroundColor: "#1e293b",
     margin: 16,
     borderRadius: 20,
-    padding: 20,
+    overflow: "hidden",
+    paddingBottom: 20,
+  },
+  bannerImage: {
+    width: "100%",
+    height: 100,
+  },
+  bannerFallback: {
+    width: "100%",
+    height: 100,
+    backgroundColor: "#334155",
+  },
+  avatarWrapper: {
+    marginTop: -40,
+    marginBottom: 8,
   },
   avatar: {
     width: 80,
@@ -206,6 +229,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#6366f1",
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 4,
+    borderColor: "#1e293b",
+  },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 4,
+    borderColor: "#1e293b",
   },
   avatarText: {
     color: "#fff",
@@ -226,6 +258,7 @@ const styles = StyleSheet.create({
     color: "#cbd5e1",
     fontSize: 14,
     textAlign: "center",
+    paddingHorizontal: 16,
     marginBottom: 16,
   },
   statsRow: {
@@ -248,7 +281,7 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: "row",
     gap: 12,
-    width: "100%",
+    width: "90%",
   },
   btn: {
     flex: 1,

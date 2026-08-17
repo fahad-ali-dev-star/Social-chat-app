@@ -11,11 +11,14 @@ import {
   Modal,
   TextInput,
   Alert,
+  ScrollView,
 } from "react-native";
 import { router } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import api from "../../api";
 import { useAuthStore } from "../../authStore";
 import PostCard from "../../components/PostCard";
+import VerifiedBadge from "../../components/VerifiedBadge";
 
 export default function ProfileScreen() {
   const { user, logout, fetchMe } = useAuthStore();
@@ -27,6 +30,10 @@ export default function ProfileScreen() {
   const [editVisible, setEditVisible] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [bannerUrl, setBannerUrl] = useState("");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -46,10 +53,52 @@ export default function ProfileScreen() {
       setPosts(postRes.data.posts || []);
       setDisplayName(profRes.data.user?.displayName || "");
       setBio(profRes.data.user?.bio || "");
+      setAvatarUrl(profRes.data.user?.avatarUrl || "");
+      setBannerUrl(profRes.data.user?.bannerUrl || "");
     } catch (err) {
       console.error("Profile load error", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePickMedia = async (type: "avatar" | "banner") => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission Required", "Please allow photo access to upload images.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets?.[0]?.uri) {
+      const uri = result.assets[0].uri;
+      if (type === "avatar") setUploadingAvatar(true);
+      else setUploadingBanner(true);
+
+      try {
+        const formData = new FormData();
+        const filename = uri.split("/").pop() || `${type}.jpg`;
+        const match = /\.(\w+)$/.exec(filename);
+        const fileType = match ? `image/${match[1]}` : `image/jpeg`;
+
+        formData.append("file", { uri, name: filename, type: fileType } as any);
+
+        const { data } = await api.post("/upload", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        if (type === "avatar") setAvatarUrl(data.url);
+        else setBannerUrl(data.url);
+      } catch (err: any) {
+        Alert.alert("Upload Failed", err?.response?.data?.message || "Failed to upload image.");
+      } finally {
+        setUploadingAvatar(false);
+        setUploadingBanner(false);
+      }
     }
   };
 
@@ -59,6 +108,8 @@ export default function ProfileScreen() {
       const { data } = await api.put("/users/me", {
         displayName: displayName.trim(),
         bio: bio.trim(),
+        avatarUrl,
+        bannerUrl,
       });
       setProfileData(data.user);
       await fetchMe();
@@ -102,23 +153,32 @@ export default function ProfileScreen() {
                 </View>
               </View>
 
-              {/* Avatar & Main Info */}
+              {/* Profile Card */}
               <View style={styles.profileHeader}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {profileData?.displayName?.[0] || profileData?.username?.[0] || "U"}
-                  </Text>
+                {/* Banner */}
+                {profileData?.bannerUrl ? (
+                  <Image source={{ uri: profileData.bannerUrl }} style={styles.bannerImage} />
+                ) : (
+                  <View style={styles.bannerFallback} />
+                )}
+
+                {/* Avatar */}
+                <View style={styles.avatarWrapper}>
+                  {profileData?.avatarUrl ? (
+                    <Image source={{ uri: profileData.avatarUrl }} style={styles.avatarImage} />
+                  ) : (
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>
+                        {profileData?.displayName?.[0] || profileData?.username?.[0] || "U"}
+                      </Text>
+                    </View>
+                  )}
                 </View>
 
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 12 }}>
+                {/* Info */}
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
                   <Text style={styles.name}>{profileData?.displayName || profileData?.username}</Text>
-                  {profileData?.isVerified && (
-                    <Image
-                      source={require("@/assets/images/5c6a9983d0c9eef8b3912a451cc8a27d.png")}
-                      style={{ width: 16, height: 16 }}
-                      resizeMode="contain"
-                    />
-                  )}
+                  {profileData?.isVerified && <VerifiedBadge size={16} />}
                 </View>
                 <Text style={styles.username}>@{profileData?.username}</Text>
                 {profileData?.bio ? <Text style={styles.bio}>{profileData.bio}</Text> : null}
@@ -141,7 +201,7 @@ export default function ProfileScreen() {
 
                 {/* Edit Button */}
                 <TouchableOpacity style={styles.editBtn} onPress={() => setEditVisible(true)}>
-                  <Text style={styles.editText}>Edit Profile</Text>
+                  <Text style={styles.editText}>Edit Profile & Photos</Text>
                 </TouchableOpacity>
               </View>
 
@@ -158,8 +218,54 @@ export default function ProfileScreen() {
       {/* Edit Profile Modal */}
       <Modal visible={editVisible} animationType="slide" transparent onRequestClose={() => setEditVisible(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <ScrollView contentContainerStyle={styles.modalContent}>
             <Text style={styles.modalTitle}>Edit Profile</Text>
+
+            {/* Profile Photo Upload */}
+            <Text style={styles.label}>Profile Photo</Text>
+            <View style={styles.uploadRow}>
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.previewAvatar} />
+              ) : (
+                <View style={[styles.previewAvatar, { backgroundColor: "#6366f1", justifyContent: "center", alignItems: "center" }]}>
+                  <Text style={{ color: "#fff", fontWeight: "bold" }}>U</Text>
+                </View>
+              )}
+              <TouchableOpacity
+                style={styles.uploadBtn}
+                onPress={() => handlePickMedia("avatar")}
+                disabled={uploadingAvatar}
+              >
+                {uploadingAvatar ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.uploadBtnText}>Change Photo</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Cover Banner Upload */}
+            <Text style={styles.label}>Cover Banner</Text>
+            <View style={styles.uploadRow}>
+              {bannerUrl ? (
+                <Image source={{ uri: bannerUrl }} style={styles.previewBanner} />
+              ) : (
+                <View style={[styles.previewBanner, { backgroundColor: "#334155", justifyContent: "center", alignItems: "center" }]}>
+                  <Text style={{ color: "#94a3b8", fontSize: 12 }}>No Cover</Text>
+                </View>
+              )}
+              <TouchableOpacity
+                style={styles.uploadBtn}
+                onPress={() => handlePickMedia("banner")}
+                disabled={uploadingBanner}
+              >
+                {uploadingBanner ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.uploadBtnText}>Change Cover</Text>
+                )}
+              </TouchableOpacity>
+            </View>
 
             <Text style={styles.label}>Display Name</Text>
             <TextInput
@@ -184,11 +290,11 @@ export default function ProfileScreen() {
               <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditVisible(false)}>
                 <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProfile} disabled={saving}>
-                {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveText}>Save</Text>}
+              <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProfile} disabled={saving || uploadingAvatar || uploadingBanner}>
+                {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveText}>Save Changes</Text>}
               </TouchableOpacity>
             </View>
-          </View>
+          </ScrollView>
         </View>
       </Modal>
     </SafeAreaView>
@@ -249,8 +355,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#1e293b",
     borderRadius: 20,
-    padding: 20,
+    overflow: "hidden",
+    paddingBottom: 20,
     marginBottom: 20,
+  },
+  bannerImage: {
+    width: "100%",
+    height: 100,
+  },
+  bannerFallback: {
+    width: "100%",
+    height: 100,
+    backgroundColor: "#334155",
+  },
+  avatarWrapper: {
+    marginTop: -40,
+    marginBottom: 8,
   },
   avatar: {
     width: 80,
@@ -259,6 +379,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#6366f1",
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 4,
+    borderColor: "#1e293b",
+  },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 4,
+    borderColor: "#1e293b",
   },
   avatarText: {
     color: "#fff",
@@ -279,6 +408,7 @@ const styles = StyleSheet.create({
     color: "#cbd5e1",
     fontSize: 14,
     textAlign: "center",
+    paddingHorizontal: 16,
     marginBottom: 16,
   },
   statsRow: {
@@ -303,7 +433,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: 20,
-    width: "100%",
+    width: "90%",
     alignItems: "center",
   },
   editText: {
@@ -326,7 +456,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.7)",
     justifyContent: "center",
-    padding: 24,
+    padding: 20,
   },
   modalContent: {
     backgroundColor: "#1e293b",
@@ -343,6 +473,33 @@ const styles = StyleSheet.create({
     color: "#94a3b8",
     fontSize: 13,
     marginBottom: 6,
+  },
+  uploadRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 16,
+  },
+  previewAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  previewBanner: {
+    width: 90,
+    height: 48,
+    borderRadius: 8,
+  },
+  uploadBtn: {
+    backgroundColor: "#334155",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  uploadBtnText: {
+    color: "#a5b4fc",
+    fontWeight: "600",
+    fontSize: 13,
   },
   input: {
     backgroundColor: "#0f172a",
