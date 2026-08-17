@@ -260,9 +260,11 @@ export default function ChatScreen() {
             contentContainerStyle={{ padding: 16, gap: 6 }}
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
             renderItem={({ item }) => {
-              const isMine =
-                String(item.sender?._id || item.sender?.id || item.sender) ===
-                String(currentUser?.id);
+              const myUserId = String(currentUser?._id || currentUser?.id || "");
+              const senderUserId = typeof item.sender === "object"
+                ? String(item.sender?._id || item.sender?.id || "")
+                : String(item.sender || "");
+              const isMine = Boolean(myUserId && senderUserId && myUserId === senderUserId);
               const isDeleted = Boolean(item.deletedAt);
 
               return (
@@ -496,7 +498,7 @@ export default function ChatScreen() {
             </TouchableOpacity>
 
             {String(selectedMsg?.sender?._id || selectedMsg?.sender?.id || selectedMsg?.sender) ===
-              String(currentUser?.id) && (
+              String(currentUser?._id || currentUser?.id) && (
               <TouchableOpacity
                 style={styles.menuItem}
                 onPress={handleDeleteMsg}
