@@ -1,11 +1,9 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-// Connect directly to your live backend on Render
-const BACKEND_URL = "https://social-chat-app-9v5i.onrender.com/api";
+import { API_BASE_URL } from "./config";
 
 const api = axios.create({
-  baseURL: BACKEND_URL,
+  baseURL: API_BASE_URL,
   timeout: 15000,
 });
 

@@ -2,8 +2,7 @@ import { create } from "zustand";
 import io from "socket.io-client";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "./api";
-
-const SOCKET_URL = "https://social-chat-app-9v5i.onrender.com";
+import { SOCKET_SERVER_URL } from "./config";
 
 let socket = null;
 
@@ -30,7 +29,7 @@ export const useNotificationStore = create((set, get) => ({
 
       // Setup Socket.IO if not already initialized
       if (!socket) {
-        socket = io(SOCKET_URL, {
+        socket = io(SOCKET_SERVER_URL, {
           withCredentials: true,
           auth: { token },
           transports: ["websocket", "polling"],
