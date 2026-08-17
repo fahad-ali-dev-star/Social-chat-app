@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   StyleSheet,
   Text,
@@ -7,22 +7,40 @@ import {
   Image,
   Alert,
   Modal,
+  ScrollView,
+  Dimensions,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from "react-native";
 import { router } from "expo-router";
+import { Video, ResizeMode } from "expo-av";
 import { usePostStore } from "../postStore";
 import { useAuthStore } from "../authStore";
 import CommentModal from "./CommentModal";
 import ReportModal from "./ReportModal";
 import VerifiedBadge from "./VerifiedBadge";
 
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const CARD_PADDING = 32; // marginHorizontal 16 * 2
+const MEDIA_WIDTH = SCREEN_WIDTH - CARD_PADDING;
+
 interface Props {
   post: any;
+}
+
+function isVideoUrl(url: string): boolean {
+  return /\.(mp4|webm|mov|ogg|m4v)(\?.*)?$/i.test(url);
 }
 
 export default function PostCard({ post }: Props) {
   const [commentModalVisible, setCommentModalVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [mediaModalVisible, setMediaModalVisible] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [fullscreenIdx, setFullscreenIdx] = useState(0);
+
+  const scrollRef = useRef<ScrollView>(null);
+  const fullscreenScrollRef = useRef<ScrollView>(null);
 
   const toggleLike = usePostStore((s) => s.toggleLike);
   const toggleBookmark = usePostStore((s) => s.toggleBookmark);
@@ -32,9 +50,20 @@ export default function PostCard({ post }: Props) {
 
   const isLiked = Boolean(post._liked);
   const isBookmarked = bookmarkedIds.has(post._id);
-  const isOwnPost = String(post.author?._id || post.author?.id) === String(currentUser?.id);
+  const isOwnPost =
+    String(post.author?._id || post.author?.id) === String(currentUser?.id);
 
-  const mediaUrl = post.mediaUrls?.[0] || post.mediaUrl;
+  // Build media list — support both mediaUrls array and legacy mediaUrl
+  const mediaList: string[] =
+    post.mediaUrls && post.mediaUrls.length > 0
+      ? post.mediaUrls
+      : post.mediaUrl
+      ? [post.mediaUrl]
+      : [];
+
+  const isVideo =
+    post.mediaType === "video" ||
+    (mediaList.length > 0 && isVideoUrl(mediaList[0]));
 
   const handleOpenProfile = () => {
     if (post.author?.username) {
@@ -64,6 +93,30 @@ export default function PostCard({ post }: Props) {
       })
     : "";
 
+  const handleCarouselScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetX = e.nativeEvent.contentOffset.x;
+    const idx = Math.round(offsetX / MEDIA_WIDTH);
+    setActiveIdx(idx);
+  };
+
+  const handleFullscreenScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetX = e.nativeEvent.contentOffset.x;
+    const idx = Math.round(offsetX / SCREEN_WIDTH);
+    setFullscreenIdx(idx);
+  };
+
+  const openFullscreen = (idx: number) => {
+    setFullscreenIdx(idx);
+    setMediaModalVisible(true);
+    // Scroll to the tapped index after the modal opens
+    setTimeout(() => {
+      fullscreenScrollRef.current?.scrollTo({
+        x: idx * SCREEN_WIDTH,
+        animated: false,
+      });
+    }, 80);
+  };
+
   return (
     <View style={styles.card}>
       {/* Header */}
@@ -85,13 +138,18 @@ export default function PostCard({ post }: Props) {
               </Text>
               {post.author?.isVerified && <VerifiedBadge size={14} />}
             </View>
-            <Text style={styles.username}>@{post.author?.username} · {formattedDate}</Text>
+            <Text style={styles.username}>
+              @{post.author?.username} · {formattedDate}
+            </Text>
           </View>
         </TouchableOpacity>
 
         <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
           {!isOwnPost && (
-            <TouchableOpacity onPress={() => setReportModalVisible(true)} style={styles.moreBtn}>
+            <TouchableOpacity
+              onPress={() => setReportModalVisible(true)}
+              style={styles.moreBtn}
+            >
               <Text style={styles.moreText}>🚩</Text>
             </TouchableOpacity>
           )}
@@ -104,22 +162,88 @@ export default function PostCard({ post }: Props) {
       </View>
 
       {/* Post Text Content */}
-      {post.content ? <Text style={styles.content}>{post.content}</Text> : null}
-
-      {/* Media Attachment */}
-      {mediaUrl ? (
-        <TouchableOpacity onPress={() => setMediaModalVisible(true)}>
-          <Image
-            source={{ uri: mediaUrl }}
-            style={styles.mediaImage}
-            resizeMode="cover"
-          />
-        </TouchableOpacity>
+      {post.content ? (
+        <Text style={styles.content}>{post.content}</Text>
       ) : null}
+
+      {/* ── Media Section ── */}
+      {mediaList.length > 0 && (
+        <View style={styles.mediaWrapper}>
+          {isVideo ? (
+            /* ── Video Player ── */
+            <Video
+              source={{ uri: mediaList[0] }}
+              style={styles.mediaVideo}
+              useNativeControls
+              resizeMode={ResizeMode.CONTAIN}
+              shouldPlay={false}
+            />
+          ) : mediaList.length === 1 ? (
+            /* ── Single Image ── */
+            <TouchableOpacity
+              activeOpacity={0.95}
+              onPress={() => openFullscreen(0)}
+            >
+              <Image
+                source={{ uri: mediaList[0] }}
+                style={styles.mediaSingle}
+                resizeMode="cover"
+              />
+            </TouchableOpacity>
+          ) : (
+            /* ── Multi-image Horizontal Carousel ── */
+            <View>
+              <ScrollView
+                ref={scrollRef}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onScroll={handleCarouselScroll}
+                scrollEventThrottle={16}
+                style={{ width: MEDIA_WIDTH }}
+                contentContainerStyle={{ width: MEDIA_WIDTH * mediaList.length }}
+              >
+                {mediaList.map((url, idx) => (
+                  <TouchableOpacity
+                    key={idx}
+                    activeOpacity={0.95}
+                    onPress={() => openFullscreen(idx)}
+                  >
+                    <Image
+                      source={{ uri: url }}
+                      style={[styles.mediaCarouselItem, { width: MEDIA_WIDTH }]}
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {/* Page counter badge (top-right) */}
+              <View style={styles.pageCounter}>
+                <Text style={styles.pageCounterText}>
+                  {activeIdx + 1}/{mediaList.length}
+                </Text>
+              </View>
+
+              {/* Dot indicators (bottom-center) */}
+              <View style={styles.dotsRow}>
+                {mediaList.map((_, idx) => (
+                  <View
+                    key={idx}
+                    style={[
+                      styles.dot,
+                      activeIdx === idx ? styles.dotActive : styles.dotInactive,
+                    ]}
+                  />
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
+      )}
 
       {/* Action Bar */}
       <View style={styles.footer}>
-        {/* Like */}
         <TouchableOpacity
           style={styles.actionBtn}
           onPress={() => toggleLike(post._id)}
@@ -130,7 +254,6 @@ export default function PostCard({ post }: Props) {
           </Text>
         </TouchableOpacity>
 
-        {/* Comment */}
         <TouchableOpacity
           style={styles.actionBtn}
           onPress={() => setCommentModalVisible(true)}
@@ -139,7 +262,6 @@ export default function PostCard({ post }: Props) {
           <Text style={styles.actionCount}>{post.commentCount || 0}</Text>
         </TouchableOpacity>
 
-        {/* Bookmark */}
         <TouchableOpacity
           style={styles.actionBtn}
           onPress={() => toggleBookmark(post._id)}
@@ -163,14 +285,74 @@ export default function PostCard({ post }: Props) {
         onClose={() => setReportModalVisible(false)}
       />
 
-      {/* Full-Screen Media Modal */}
-      {mediaUrl && (
-        <Modal visible={mediaModalVisible} transparent animationType="fade" onRequestClose={() => setMediaModalVisible(false)}>
-          <View style={styles.fullMediaContainer}>
-            <TouchableOpacity style={styles.closeMediaBtn} onPress={() => setMediaModalVisible(false)}>
-              <Text style={styles.closeMediaText}>✕</Text>
+      {/* ── Full-Screen Media Viewer ── */}
+      {mediaList.length > 0 && (
+        <Modal
+          visible={mediaModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setMediaModalVisible(false)}
+        >
+          <View style={styles.fullscreenBg}>
+            {/* Close button */}
+            <TouchableOpacity
+              style={styles.closeBtn}
+              onPress={() => setMediaModalVisible(false)}
+            >
+              <Text style={styles.closeBtnText}>✕</Text>
             </TouchableOpacity>
-            <Image source={{ uri: mediaUrl }} style={styles.fullMediaImage} resizeMode="contain" />
+
+            {/* Page counter (fullscreen) */}
+            {mediaList.length > 1 && (
+              <View style={styles.fullscreenCounter}>
+                <Text style={styles.pageCounterText}>
+                  {fullscreenIdx + 1}/{mediaList.length}
+                </Text>
+              </View>
+            )}
+
+            {isVideo ? (
+              <Video
+                source={{ uri: mediaList[0] }}
+                style={styles.fullscreenVideo}
+                useNativeControls
+                resizeMode={ResizeMode.CONTAIN}
+                shouldPlay
+              />
+            ) : (
+              <ScrollView
+                ref={fullscreenScrollRef}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onScroll={handleFullscreenScroll}
+                scrollEventThrottle={16}
+              >
+                {mediaList.map((url, idx) => (
+                  <Image
+                    key={idx}
+                    source={{ uri: url }}
+                    style={styles.fullscreenImage}
+                    resizeMode="contain"
+                  />
+                ))}
+              </ScrollView>
+            )}
+
+            {/* Dots (fullscreen) */}
+            {!isVideo && mediaList.length > 1 && (
+              <View style={[styles.dotsRow, { position: "absolute", bottom: 40 }]}>
+                {mediaList.map((_, idx) => (
+                  <View
+                    key={idx}
+                    style={[
+                      styles.dot,
+                      fullscreenIdx === idx ? styles.dotActive : styles.dotInactiveWhite,
+                    ]}
+                  />
+                ))}
+              </View>
+            )}
           </View>
         </Modal>
       )}
@@ -239,13 +421,66 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 12,
   },
-  mediaImage: {
-    width: "100%",
-    height: 220,
-    borderRadius: 12,
+
+  /* ── Media ── */
+  mediaWrapper: {
     marginBottom: 12,
+    borderRadius: 12,
+    overflow: "hidden",
     backgroundColor: "#0f172a",
   },
+  mediaVideo: {
+    width: "100%",
+    height: 240,
+    backgroundColor: "#000",
+  },
+  mediaSingle: {
+    width: "100%",
+    height: 240,
+  },
+  mediaCarouselItem: {
+    height: 240,
+  },
+
+  /* ── Carousel indicators ── */
+  pageCounter: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  pageCounterText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  dotsRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 5,
+    paddingVertical: 6,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  dotActive: {
+    backgroundColor: "#38bdf8",
+    transform: [{ scale: 1.3 }],
+  },
+  dotInactive: {
+    backgroundColor: "rgba(255,255,255,0.3)",
+  },
+  dotInactiveWhite: {
+    backgroundColor: "rgba(255,255,255,0.4)",
+  },
+
+  /* ── Action bar ── */
   footer: {
     flexDirection: "row",
     alignItems: "center",
@@ -271,31 +506,47 @@ const styles = StyleSheet.create({
     color: "#ef4444",
     fontWeight: "bold",
   },
-  fullMediaContainer: {
+
+  /* ── Full-screen viewer ── */
+  fullscreenBg: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.9)",
+    backgroundColor: "rgba(0,0,0,0.95)",
     justifyContent: "center",
     alignItems: "center",
   },
-  fullMediaImage: {
-    width: "100%",
-    height: "100%",
-  },
-  closeMediaBtn: {
+  closeBtn: {
     position: "absolute",
-    top: 40,
+    top: 50,
     right: 20,
-    zIndex: 10,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    zIndex: 20,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     justifyContent: "center",
     alignItems: "center",
   },
-  closeMediaText: {
+  closeBtnText: {
     color: "#fff",
     fontSize: 18,
     fontWeight: "bold",
+  },
+  fullscreenCounter: {
+    position: "absolute",
+    top: 55,
+    left: 20,
+    zIndex: 20,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  fullscreenImage: {
+    width: SCREEN_WIDTH,
+    height: "100%",
+  },
+  fullscreenVideo: {
+    width: SCREEN_WIDTH,
+    height: 340,
   },
 });
