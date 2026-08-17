@@ -73,7 +73,7 @@ export const useMessageStore = create((set, get) => ({
     }
   },
 
-  sendMessage: async (conversationId, body, mediaUrl = "", mediaType = "") => {
+  sendMessage: async (conversationId, body, mediaUrl = "", mediaType = "", replyToId = null) => {
     const currentUserId = useAuthStore.getState().user?.id;
     const tempId = `temp_${Date.now()}`;
     const optimisticMsg = {
@@ -83,6 +83,7 @@ export const useMessageStore = create((set, get) => ({
       body: body || "",
       mediaUrl: mediaUrl || "",
       mediaType: mediaType || "",
+      replyTo: replyToId ? { _id: replyToId } : null,
       createdAt: new Date().toISOString(),
       _optimistic: true,
     };
@@ -99,7 +100,7 @@ export const useMessageStore = create((set, get) => ({
     }));
 
     try {
-      const { data } = await api.post(`/messages/${conversationId}`, { body, mediaUrl, mediaType });
+      const { data } = await api.post(`/messages/${conversationId}`, { body, mediaUrl, mediaType, replyToId });
       set((state) => ({
         messages: state.messages.map((m) => (m._id === tempId ? data.message : m)),
       }));
@@ -129,6 +130,17 @@ export const useMessageStore = create((set, get) => ({
         deletedAt: data.deletedAt,
       })),
     }));
+  },
+
+  reactToMessage: async (messageId, emoji) => {
+    try {
+      const { data } = await api.post(`/messages/message/${messageId}/reactions`, { emoji });
+      set((state) => ({
+        messages: updateMessage(state.messages, messageId, () => data.message),
+      }));
+    } catch (err) {
+      console.error("Failed to react to message", err);
+    }
   },
 
   addIncomingMessage: (message, conversationId) => {
