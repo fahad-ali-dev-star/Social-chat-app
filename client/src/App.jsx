@@ -101,13 +101,6 @@ export default function App() {
       useMessageStore.getState().loadConversations();
     }, 30000);
 
-    socket.on("connect", () => {
-      const activeConv = useMessageStore.getState().activeConversation;
-      if (activeConv?._id) {
-        socket.emit("join_conversation", activeConv._id);
-      }
-    });
-
     socket.on("online_users", (onlineUserIds) => {
       window.dispatchEvent(new CustomEvent("online_users_update", { detail: onlineUserIds }));
     });
@@ -133,7 +126,6 @@ export default function App() {
         title: "Buzz Chat 🔔",
         body,
         tag: `notif-${notif._id || Date.now()}`,
-        url: "/notifications",
       });
 
       window.dispatchEvent(new CustomEvent("new_notification_toast", { detail: notif }));
@@ -148,7 +140,6 @@ export default function App() {
         title: `💬 ${senderName}`,
         body: msgBody,
         tag: `msg-${conversationId}`,
-        url: "/messages",
       });
 
       window.dispatchEvent(new CustomEvent("new_message_toast", {
@@ -163,21 +154,12 @@ export default function App() {
     socket.on("message_reaction", (payload) => updateReaction(payload));
 
     // When the user returns to the app (e.g. from home screen on mobile,
-    // or switches back to this browser tab), immediately sync socket & unread counts.
+    // or switches back to this browser tab), immediately sync unread counts.
+    // This ensures the red dot badge reflects reality even if a socket event
+    // was missed while the PWA was backgrounded.
     const handleResume = () => {
-      if (socket && !socket.connected) {
-        socket.connect();
-      }
       fetchUnreadCount();
-      const msgStore = useMessageStore.getState();
-      msgStore.loadConversations();
-
-      if (msgStore.activeConversation?._id) {
-        msgStore.loadMessages(msgStore.activeConversation._id);
-        if (socket && socket.connected) {
-          socket.emit("join_conversation", msgStore.activeConversation._id);
-        }
-      }
+      useMessageStore.getState().loadConversations();
     };
     const handleVisibility = () => {
       if (document.visibilityState === "visible") handleResume();
