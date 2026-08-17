@@ -43,7 +43,7 @@ export default function StoryBar() {
   const loadStories = async () => {
     try {
       const { data } = await api.get("/stories/feed");
-      setStoryGroups(data.stories || []);
+      setStoryGroups(data.storyGroups || data.stories || []);
     } catch (err) {
       console.error("Failed to load stories", err);
     }
