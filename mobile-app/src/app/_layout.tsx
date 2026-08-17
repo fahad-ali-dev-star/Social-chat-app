@@ -6,7 +6,7 @@ import { Stack } from 'expo-router';
 import { initSocket } from '../socketStore';
 import { useAuthStore } from '../authStore';
 
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
