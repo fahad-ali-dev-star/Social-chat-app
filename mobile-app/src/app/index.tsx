@@ -18,10 +18,14 @@ import api from "../api";
 import MobileHeader from "../components/MobileHeader";
 
 export default function App() {
-  const { user, loading, login, logout, fetchMe } = useAuthStore();
+  const { user, loading, login, register, logout, fetchMe } = useAuthStore();
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [emailOrUsername, setEmailOrUsername] = useState("");
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
-  const [loginLoading, setLoginLoading] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
   // Feed State
@@ -52,19 +56,34 @@ export default function App() {
     );
   }
 
-  const handleLogin = async () => {
-    if (!emailOrUsername.trim() || !password.trim()) {
-      setErrorMsg("Please enter email/username and password.");
-      return;
-    }
-    setLoginLoading(true);
+  const handleAuth = async () => {
     setErrorMsg("");
-    try {
-      await login(emailOrUsername, password);
-    } catch (err) {
-      setErrorMsg(err?.response?.data?.message || "Login failed.");
-    } finally {
-      setLoginLoading(false);
+    if (isRegisterMode) {
+      if (!displayName.trim() || !username.trim() || !email.trim() || !password.trim()) {
+        setErrorMsg("Please fill in all fields to create an account.");
+        return;
+      }
+      setAuthLoading(true);
+      try {
+        await register(username.trim(), email.trim(), password.trim(), displayName.trim());
+      } catch (err: any) {
+        setErrorMsg(err?.response?.data?.message || "Account creation failed.");
+      } finally {
+        setAuthLoading(false);
+      }
+    } else {
+      if (!emailOrUsername.trim() || !password.trim()) {
+        setErrorMsg("Please enter email/username and password.");
+        return;
+      }
+      setAuthLoading(true);
+      try {
+        await login(emailOrUsername.trim(), password.trim());
+      } catch (err: any) {
+        setErrorMsg(err?.response?.data?.message || "Login failed.");
+      } finally {
+        setAuthLoading(false);
+      }
     }
   };
 
@@ -114,25 +133,56 @@ export default function App() {
     }
   };
 
-  // Login Screen
+  // Auth Screen (Login / Register)
   if (!user) {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
         <View style={styles.authContainer}>
           <Text style={styles.logoText}>🐝 Buzz Chat</Text>
-          <Text style={styles.subText}>Native Android & iPhone App</Text>
+          <Text style={styles.subText}>
+            {isRegisterMode ? "Create a new account" : "Native Android & iPhone App"}
+          </Text>
 
           {errorMsg ? <Text style={styles.errorText}>{errorMsg}</Text> : null}
 
-          <TextInput
-            style={styles.input}
-            placeholder="Username or Email"
-            placeholderTextColor="#64748b"
-            value={emailOrUsername}
-            onChangeText={setEmailOrUsername}
-            autoCapitalize="none"
-          />
+          {isRegisterMode ? (
+            <>
+              <TextInput
+                style={styles.input}
+                placeholder="Full Name / Display Name"
+                placeholderTextColor="#64748b"
+                value={displayName}
+                onChangeText={setDisplayName}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Choose Username"
+                placeholderTextColor="#64748b"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Email Address"
+                placeholderTextColor="#64748b"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </>
+          ) : (
+            <TextInput
+              style={styles.input}
+              placeholder="Username or Email"
+              placeholderTextColor="#64748b"
+              value={emailOrUsername}
+              onChangeText={setEmailOrUsername}
+              autoCapitalize="none"
+            />
+          )}
 
           <TextInput
             style={styles.input}
@@ -145,14 +195,30 @@ export default function App() {
 
           <TouchableOpacity
             style={styles.btnPrimary}
-            onPress={handleLogin}
-            disabled={loginLoading}
+            onPress={handleAuth}
+            disabled={authLoading}
           >
-            {loginLoading ? (
+            {authLoading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.btnText}>Log In</Text>
+              <Text style={styles.btnText}>
+                {isRegisterMode ? "Create Account" : "Log In"}
+              </Text>
             )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.toggleAuthBtn}
+            onPress={() => {
+              setIsRegisterMode(!isRegisterMode);
+              setErrorMsg("");
+            }}
+          >
+            <Text style={styles.toggleAuthText}>
+              {isRegisterMode
+                ? "Already have an account? Log In"
+                : "Don't have an account? Sign Up"}
+            </Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -301,6 +367,16 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  toggleAuthBtn: {
+    marginTop: 20,
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  toggleAuthText: {
+    color: "#a5b4fc",
+    fontSize: 14,
+    fontWeight: "600",
   },
   header: {
     flexDirection: "row",
