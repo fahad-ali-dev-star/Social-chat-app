@@ -6,11 +6,13 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  Modal,
 } from "react-native";
 import { router } from "expo-router";
 import { usePostStore } from "../postStore";
 import { useAuthStore } from "../authStore";
 import CommentModal from "./CommentModal";
+import ReportModal from "./ReportModal";
 
 interface Props {
   post: any;
@@ -18,6 +20,9 @@ interface Props {
 
 export default function PostCard({ post }: Props) {
   const [commentModalVisible, setCommentModalVisible] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [mediaModalVisible, setMediaModalVisible] = useState(false);
+
   const toggleLike = usePostStore((s) => s.toggleLike);
   const toggleBookmark = usePostStore((s) => s.toggleBookmark);
   const deletePost = usePostStore((s) => s.deletePost);
@@ -27,6 +32,8 @@ export default function PostCard({ post }: Props) {
   const isLiked = Boolean(post._liked);
   const isBookmarked = bookmarkedIds.has(post._id);
   const isOwnPost = String(post.author?._id || post.author?.id) === String(currentUser?.id);
+
+  const mediaUrl = post.mediaUrls?.[0] || post.mediaUrl;
 
   const handleOpenProfile = () => {
     if (post.author?.username) {
@@ -83,24 +90,33 @@ export default function PostCard({ post }: Props) {
           </View>
         </TouchableOpacity>
 
-        {isOwnPost && (
-          <TouchableOpacity onPress={handleDelete} style={styles.moreBtn}>
-            <Text style={styles.moreText}>🗑️</Text>
-          </TouchableOpacity>
-        )}
+        <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+          {!isOwnPost && (
+            <TouchableOpacity onPress={() => setReportModalVisible(true)} style={styles.moreBtn}>
+              <Text style={styles.moreText}>🚩</Text>
+            </TouchableOpacity>
+          )}
+          {isOwnPost && (
+            <TouchableOpacity onPress={handleDelete} style={styles.moreBtn}>
+              <Text style={styles.moreText}>🗑️</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* Post Text Content */}
       {post.content ? <Text style={styles.content}>{post.content}</Text> : null}
 
       {/* Media Attachment */}
-      {(post.mediaUrl || (post.mediaUrls && post.mediaUrls.length > 0)) && (
-        <Image
-          source={{ uri: post.mediaUrls?.[0] || post.mediaUrl }}
-          style={styles.mediaImage}
-          resizeMode="cover"
-        />
-      )}
+      {mediaUrl ? (
+        <TouchableOpacity onPress={() => setMediaModalVisible(true)}>
+          <Image
+            source={{ uri: mediaUrl }}
+            style={styles.mediaImage}
+            resizeMode="cover"
+          />
+        </TouchableOpacity>
+      ) : null}
 
       {/* Action Bar */}
       <View style={styles.footer}>
@@ -139,6 +155,26 @@ export default function PostCard({ post }: Props) {
         postId={post._id}
         onClose={() => setCommentModalVisible(false)}
       />
+
+      {/* Report Modal */}
+      <ReportModal
+        visible={reportModalVisible}
+        targetType="post"
+        targetId={post._id}
+        onClose={() => setReportModalVisible(false)}
+      />
+
+      {/* Full-Screen Media Modal */}
+      {mediaUrl && (
+        <Modal visible={mediaModalVisible} transparent animationType="fade" onRequestClose={() => setMediaModalVisible(false)}>
+          <View style={styles.fullMediaContainer}>
+            <TouchableOpacity style={styles.closeMediaBtn} onPress={() => setMediaModalVisible(false)}>
+              <Text style={styles.closeMediaText}>✕</Text>
+            </TouchableOpacity>
+            <Image source={{ uri: mediaUrl }} style={styles.fullMediaImage} resizeMode="contain" />
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -191,7 +227,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   moreText: {
-    fontSize: 16,
+    fontSize: 15,
   },
   content: {
     color: "#e2e8f0",
@@ -209,7 +245,7 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 24,
+    gap: 28,
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: "#334155",
@@ -229,6 +265,33 @@ const styles = StyleSheet.create({
   },
   likedText: {
     color: "#ef4444",
+    fontWeight: "bold",
+  },
+  fullMediaContainer: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.9)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fullMediaImage: {
+    width: "100%",
+    height: "100%",
+  },
+  closeMediaBtn: {
+    position: "absolute",
+    top: 40,
+    right: 20,
+    zIndex: 10,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  closeMediaText: {
+    color: "#fff",
+    fontSize: 18,
     fontWeight: "bold",
   },
 });

@@ -12,6 +12,7 @@ import {
   TextInput,
   Alert,
 } from "react-native";
+import { router } from "expo-router";
 import api from "../../api";
 import { useAuthStore } from "../../authStore";
 import PostCard from "../../components/PostCard";
@@ -69,6 +70,8 @@ export default function ProfileScreen() {
     }
   };
 
+  const isAdmin = user?.role === "admin" || user?.role === "moderator";
+
   return (
     <SafeAreaView style={styles.container}>
       {loading && !profileData ? (
@@ -81,12 +84,22 @@ export default function ProfileScreen() {
           keyExtractor={(item) => item._id}
           ListHeaderComponent={
             <View style={styles.headerContainer}>
-              {/* Top Bar with Logout */}
+              {/* Top Bar */}
               <View style={styles.topBar}>
                 <Text style={styles.title}>My Profile</Text>
-                <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-                  <Text style={styles.logoutText}>Log Out</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  {isAdmin && (
+                    <TouchableOpacity
+                      style={styles.adminBtn}
+                      onPress={() => router.push("/admin" as any)}
+                    >
+                      <Text style={styles.adminText}>🛡️ Admin</Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
+                    <Text style={styles.logoutText}>Log Out</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {/* Avatar & Main Info */}
@@ -205,6 +218,19 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 22,
     fontWeight: "bold",
+  },
+  adminBtn: {
+    backgroundColor: "#312e81",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#6366f1",
+  },
+  adminText: {
+    color: "#a5b4fc",
+    fontWeight: "bold",
+    fontSize: 12,
   },
   logoutBtn: {
     backgroundColor: "#1e293b",

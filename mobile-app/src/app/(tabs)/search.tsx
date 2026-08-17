@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   SafeAreaView,
   TouchableOpacity,
+  ScrollView,
 } from "react-native";
 import api from "../../api";
 import UserCard from "../../components/UserCard";
@@ -19,18 +20,23 @@ export default function SearchScreen() {
   const [users, setUsers] = useState<any[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
   const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [hashtags, setHashtags] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    loadSuggestions();
+    loadDiscoverData();
   }, []);
 
-  const loadSuggestions = async () => {
+  const loadDiscoverData = async () => {
     try {
-      const { data } = await api.get("/users/suggestions");
-      setSuggestions(data.suggestions || []);
+      const [sugRes, hashRes] = await Promise.all([
+        api.get("/users/suggestions"),
+        api.get("/posts/trending"),
+      ]);
+      setSuggestions(sugRes.data.suggestions || []);
+      setHashtags(hashRes.data.hashtags || []);
     } catch (err) {
-      console.error("Failed to load suggestions", err);
+      console.error("Failed to load discover data", err);
     }
   };
 
@@ -58,13 +64,18 @@ export default function SearchScreen() {
     }
   };
 
+  const handleHashtagClick = (tag: string) => {
+    setActiveTab("posts");
+    handleSearch(tag);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Search Header */}
       <View style={styles.searchHeader}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search people or posts..."
+          placeholder="Search people or #hashtags..."
           placeholderTextColor="#64748b"
           value={query}
           onChangeText={handleSearch}
@@ -97,7 +108,7 @@ export default function SearchScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Results */}
+      {/* Results or Discover Section */}
       {loading ? (
         <View style={styles.centerLoading}>
           <ActivityIndicator color="#6366f1" size="large" />
@@ -124,14 +135,32 @@ export default function SearchScreen() {
           />
         )
       ) : (
-        <View style={{ flex: 1, padding: 16 }}>
+        <ScrollView style={{ flex: 1, padding: 16 }}>
+          {/* Trending Hashtags */}
+          {hashtags.length > 0 && (
+            <View style={{ marginBottom: 20 }}>
+              <Text style={styles.sectionTitle}>🔥 Trending Hashtags</Text>
+              <View style={styles.hashtagRow}>
+                {hashtags.map((h) => (
+                  <TouchableOpacity
+                    key={h.tag}
+                    style={styles.hashtagPill}
+                    onPress={() => handleHashtagClick(h.tag)}
+                  >
+                    <Text style={styles.hashtagText}>{h.tag}</Text>
+                    <Text style={styles.hashtagCount}>{h.count}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Suggested People */}
           <Text style={styles.sectionTitle}>Suggested People</Text>
-          <FlatList
-            data={suggestions}
-            keyExtractor={(item) => item._id}
-            renderItem={({ item }) => <UserCard user={item} />}
-          />
-        </View>
+          {suggestions.map((u) => (
+            <UserCard key={u._id} user={u} />
+          ))}
+        </ScrollView>
       )}
     </SafeAreaView>
   );
@@ -194,5 +223,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 12,
+  },
+  hashtagRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  hashtagPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#1e293b",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#334155",
+  },
+  hashtagText: {
+    color: "#a5b4fc",
+    fontWeight: "bold",
+    fontSize: 13,
+  },
+  hashtagCount: {
+    color: "#64748b",
+    fontSize: 11,
   },
 });
