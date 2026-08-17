@@ -296,6 +296,35 @@ export default function Navbar() {
                 )}
                   </button>
 
+                  {/* Icon-anchored Notification Toast Popup */}
+                  {toastMessage && toastMessage.type === "notification" && (
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate("/notifications");
+                        setToastMessage(null);
+                      }}
+                      className="absolute top-full right-0 mt-2 z-50 glass-lg border border-brand-500/40 p-3 rounded-xl shadow-2xl flex items-center gap-2.5 cursor-pointer hover:border-brand-400 transition-all animate-fade-in w-64 text-left"
+                    >
+                      {/* Little arrow pointing up */}
+                      <div className="absolute -top-1 right-4 w-2.5 h-2.5 bg-surface-900 border-t border-l border-brand-500/40 rotate-45" />
+                      <Avatar src={toastMessage.message.sender?.avatarUrl} name={toastMessage.message.sender?.displayName} username={toastMessage.message.sender?.username} size="xs" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-semibold text-brand-400 leading-none">New Notification</p>
+                        <p className="text-xs text-white truncate mt-1">{toastMessage.message.body}</p>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setToastMessage(null);
+                        }}
+                        className="text-gray-500 hover:text-white text-xs p-1"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+
                   {/* Notification Dropdown Drawer */}
                   {notifOpen && (
                     <div className="fixed inset-x-2 top-16 z-[60] max-h-[70vh] overflow-hidden rounded-2xl border border-white/10 bg-surface-900/95 shadow-2xl backdrop-blur-xl sm:absolute sm:right-0 sm:inset-auto sm:mt-2 sm:w-80 sm:max-h-80">
@@ -371,6 +400,36 @@ export default function Navbar() {
                   <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-brand-500 text-white text-[10px] font-bold rounded-full px-1 animate-bounce-in">
                     {badge > 9 ? "9+" : badge}
                   </span>
+                )}
+
+                {/* Icon-anchored Message Toast Popup */}
+                {to === "/messages" && toastMessage && toastMessage.type === "message" && (
+                  <div
+                    onClick={(e) => {
+                      setToastMessage(null);
+                    }}
+                    className="absolute top-full right-0 mt-2 z-50 glass-lg border border-brand-500/40 p-3 rounded-xl shadow-2xl flex items-center gap-2.5 cursor-pointer hover:border-brand-400 transition-all animate-fade-in w-64 text-left"
+                  >
+                    {/* Little arrow pointing up */}
+                    <div className="absolute -top-1 right-4 w-2.5 h-2.5 bg-surface-900 border-t border-l border-brand-500/40 rotate-45" />
+                    <Avatar src={toastMessage.message.sender?.avatarUrl} name={toastMessage.message.sender?.displayName} username={toastMessage.message.sender?.username} size="xs" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-semibold text-brand-400 leading-none">New Message</p>
+                      <p className="text-xs text-white truncate mt-1">
+                        <span className="font-semibold">{toastMessage.message.sender?.displayName || toastMessage.message.sender?.username}</span>: {toastMessage.message.body}
+                      </p>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setToastMessage(null);
+                      }}
+                      className="text-gray-500 hover:text-white text-xs p-1"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 )}
               </NavLink>
             );
@@ -504,39 +563,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Floating Notification / Message Toast Popup */}
-      {toastMessage && (
-        <div
-          onClick={() => {
-            if (toastMessage.type === "notification") navigate("/notifications");
-            else navigate("/messages");
-            setToastMessage(null);
-          }}
-          className="fixed bottom-5 right-5 z-50 glass-lg border border-brand-500/40 p-4 rounded-2xl shadow-2xl flex items-center gap-3 cursor-pointer hover:border-brand-400 transition-all animate-slide-up max-w-xs"
-        >
-          <div className="w-10 h-10 rounded-full bg-brand-600 flex items-center justify-center text-white font-bold flex-shrink-0">
-            {toastMessage.type === "notification" ? "🔔" : "💬"}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-brand-400">
-              {toastMessage.type === "notification" ? "New Notification" : "New Message"}
-            </p>
-            <p className="text-sm font-medium text-white truncate">
-              {toastMessage.message.sender?.displayName || toastMessage.message.sender?.username || "Someone"}
-            </p>
-            <p className="text-xs text-gray-400 truncate">{toastMessage.message.body}</p>
-          </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setToastMessage(null);
-            }}
-            className="text-gray-500 hover:text-white text-xs p-1"
-          >
-            ✕
-          </button>
-        </div>
-      )}
+
 
       {/* Notification Permission Request Banner */}
       {showNotifPrompt && (

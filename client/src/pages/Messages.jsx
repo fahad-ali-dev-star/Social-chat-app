@@ -1,43 +1,126 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useMessageStore } from "../store/messageStore";
 import { useAuthStore } from "../store/authStore";
 import Avatar from "../components/Avatar";
 import api from "../api/client";
 import ReportButton from "../components/ReportButton";
 
-function formatTime(iso) {
+/* ─────────────── helpers ─────────────── */
+function formatListTime(iso) {
   if (!iso) return "";
   const d = new Date(iso);
-  const now = Date.now();
-  const diff = Math.floor((now - d.getTime()) / 1000);
-  if (diff < 60) return "just now";
+  const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (diff < 60) return "now";
   if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+  if (diff < 86400) return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+function formatBubbleTime(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+function groupMessages(messages) {
+  // Add grouping flags: firstInGroup, lastInGroup, showTimestamp
+  const result = [];
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i];
+    const prev = messages[i - 1];
+    const next = messages[i + 1];
+    const senderId = String(msg.sender?._id || msg.sender?.id || msg.sender || "");
+    const prevSenderId = prev ? String(prev.sender?._id || prev.sender?.id || prev.sender || "") : null;
+    const nextSenderId = next ? String(next.sender?._id || next.sender?.id || next.sender || "") : null;
+
+    const timeDiff = prev
+      ? new Date(msg.createdAt) - new Date(prev.createdAt)
+      : Infinity;
+
+    const showDateDivider = timeDiff > 10 * 60 * 1000; // >10 min
+    const firstInGroup = !prev || prevSenderId !== senderId || showDateDivider;
+    const lastInGroup = !next || nextSenderId !== senderId ||
+      (new Date(next.createdAt) - new Date(msg.createdAt) > 10 * 60 * 1000);
+
+    result.push({ ...msg, firstInGroup, lastInGroup, showDateDivider });
+  }
+  return result;
+}
+
+const EMOJIS = ["❤️", "😂", "😮", "😢", "👏", "🔥"];
+
+/* ─────────────── SVG icons ─────────────── */
+const IgSend = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="w-6 h-6">
+    <line x1="22" y1="2" x2="11" y2="13" />
+    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+  </svg>
+);
+const IgImage = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-6 h-6">
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+    <circle cx="8.5" cy="8.5" r="1.5" />
+    <polyline points="21 15 16 10 5 21" />
+  </svg>
+);
+const IgMic = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-6 h-6">
+    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+    <line x1="12" y1="19" x2="12" y2="23" />
+    <line x1="8" y1="23" x2="16" y2="23" />
+  </svg>
+);
+const IgEmoji = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-6 h-6">
+    <circle cx="12" cy="12" r="10" />
+    <path d="M8 13s1.5 2 4 2 4-2 4-2" />
+    <line x1="9" y1="9" x2="9.01" y2="9" />
+    <line x1="15" y1="9" x2="15.01" y2="9" />
+  </svg>
+);
+const IgBack = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="w-6 h-6">
+    <polyline points="15 18 9 12 15 6" />
+  </svg>
+);
+const IgInfo = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-6 h-6">
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="16" x2="12.01" y2="16" />
+  </svg>
+);
+const IgCamera = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-6 h-6">
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+    <circle cx="12" cy="13" r="4" />
+  </svg>
+);
+const IgEdit = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5">
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+  </svg>
+);
+const IgSearch = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5">
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+
+/* ─────────────── main component ─────────────── */
 export default function Messages() {
   const currentUser = useAuthStore((s) => s.user);
   const {
-    conversations,
-    activeConversation,
-    messages,
-    loading,
-    messagesLoading,
-    hasMoreMessages,
-    loadConversations,
-    selectConversation,
-    loadMessages,
-    loadOlderMessages,
-    sendMessage,
-    editMessage,
-    deleteMessage,
-    reactToMessage,
-    updateConversationSettings,
+    conversations, activeConversation, messages,
+    loading, messagesLoading, hasMoreMessages,
+    loadConversations, selectConversation, loadMessages,
+    loadOlderMessages, sendMessage, editMessage,
+    deleteMessage, reactToMessage, updateConversationSettings,
   } = useMessageStore();
 
   const [messageText, setMessageText] = useState("");
-  const [sending, setSending] = useState(false);
   const [mediaUrl, setMediaUrl] = useState("");
   const [mediaType, setMediaType] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -47,553 +130,1074 @@ export default function Messages() {
   const [replyingTo, setReplyingTo] = useState(null);
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editingText, setEditingText] = useState("");
+  const [contextMenu, setContextMenu] = useState(null);
+  const [hoveredMsgId, setHoveredMsgId] = useState(null);
+  const [emojiPickerMsgId, setEmojiPickerMsgId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showInfo, setShowInfo] = useState(false);
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const typingTimeoutRef = useRef(null);
-
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Subscribe to online users list
+  /* online users */
   useEffect(() => {
-    const handleOnline = (e) => setOnlineUserIds(e.detail || []);
-    window.addEventListener("online_users_update", handleOnline);
-    return () => window.removeEventListener("online_users_update", handleOnline);
+    const h = (e) => setOnlineUserIds(e.detail || []);
+    window.addEventListener("online_users_update", h);
+    return () => window.removeEventListener("online_users_update", h);
   }, []);
 
+  /* boot */
   useEffect(() => {
     loadConversations();
     useMessageStore.setState({ unreadCount: 0 });
+    return () => { useMessageStore.setState({ activeConversation: null }); };
   }, []);
 
-  // Join conversation socket room & listen for typing events
+  /* select conversation */
   useEffect(() => {
     if (!activeConversation) return;
-
     loadMessages(activeConversation._id);
     setIsOtherTyping(false);
-
-    // Get socket instance from App
-    const socket = window.__socketInstance || null;
+    const socket = window.__socketInstance;
     socket?.emit("join_conversation", activeConversation._id);
-
-    // Dispatch typing socket events
-    const handleUserTyping = (data) => {
-      if (data.conversationId === activeConversation._id && data.userId !== currentUser?.id) {
-        setIsOtherTyping(data.isTyping);
-      }
+    const handle = (e) => {
+      const d = e.detail;
+      if (d.conversationId === activeConversation._id && d.userId !== currentUser?.id)
+        setIsOtherTyping(d.isTyping);
     };
-
-    const typingHandler = (e) => handleUserTyping(e.detail);
-    window.addEventListener("user_typing_event", typingHandler);
-
+    window.addEventListener("user_typing_event", handle);
     return () => {
       socket?.emit("leave_conversation", activeConversation._id);
-      window.removeEventListener("user_typing_event", typingHandler);
-      setIsOtherTyping(false);
+      window.removeEventListener("user_typing_event", handle);
     };
   }, [activeConversation?._id]);
 
+  /* auto-scroll */
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isOtherTyping]);
 
+  /* close context menu on outside click */
+  useEffect(() => {
+    if (!contextMenu) return;
+    const h = () => setContextMenu(null);
+    document.addEventListener("click", h);
+    return () => document.removeEventListener("click", h);
+  }, [contextMenu]);
+
+  /* textarea auto-grow */
+  const handleTextChange = useCallback((e) => {
+    const val = e.target.value;
+    setMessageText(val);
+    const ta = textareaRef.current;
+    if (ta) { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight, 120) + "px"; }
+    if (activeConversation) {
+      const socket = window.__socketInstance;
+      if (socket) {
+        socket.emit("typing", { conversationId: activeConversation._id, isTyping: true });
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(() =>
+          socket.emit("typing", { conversationId: activeConversation._id, isTyping: false }), 2000);
+      }
+    }
+  }, [activeConversation]);
+
+  /* image upload */
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const { data } = await api.post("/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setMediaUrl(data.url);
-      setMediaType("image");
-    } catch (err) {
-      console.error("Failed to upload image", err);
-      alert("Image upload failed");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
+      const fd = new FormData(); fd.append("file", file);
+      const { data } = await api.post("/upload", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      setMediaUrl(data.url); setMediaType("image");
+    } catch { alert("Image upload failed"); }
+    finally { setUploading(false); if (fileInputRef.current) fileInputRef.current.value = ""; }
   };
 
-  const startVoiceRecording = async () => {
+  /* voice */
+  const startVoice = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorderRef.current = new MediaRecorder(stream);
       audioChunksRef.current = [];
-
-      mediaRecorderRef.current.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data);
-      };
-
+      mediaRecorderRef.current.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
       mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        const audioFile = new File([audioBlob], "voicenote.webm", { type: "audio/webm" });
-
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
         setUploading(true);
         try {
-          const formData = new FormData();
-          formData.append("file", audioFile);
-          const { data } = await api.post("/upload", formData, {
-            headers: { "Content-Type": "multipart/form-data" },
-          });
-          setMediaUrl(data.url);
-          setMediaType("audio");
-        } catch (err) {
-          console.error("Voice recording upload failed", err);
-          alert("Failed to save voice note");
-        } finally {
-          setUploading(false);
-        }
+          const fd = new FormData(); fd.append("file", new File([blob], "voice.webm", { type: "audio/webm" }));
+          const { data } = await api.post("/upload", fd, { headers: { "Content-Type": "multipart/form-data" } });
+          setMediaUrl(data.url); setMediaType("audio");
+        } catch { alert("Voice upload failed"); } finally { setUploading(false); }
       };
-
       mediaRecorderRef.current.start();
       setRecording(true);
-    } catch (err) {
-      console.error("Microphone access denied", err);
-      alert("Microphone access required to record voice notes");
-    }
+    } catch { alert("Microphone access required"); }
   };
 
-  const stopVoiceRecording = () => {
+  const stopVoice = () => {
     if (mediaRecorderRef.current && recording) {
       mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
+      mediaRecorderRef.current.stream.getTracks().forEach((t) => t.stop());
       setRecording(false);
     }
   };
 
-  const handleTextChange = (e) => {
-    const val = e.target.value;
-    setMessageText(val);
-
-    if (activeConversation) {
-      const socket = window.__socketInstance;
-      if (socket) {
-        socket.emit("typing", {
-          conversationId: activeConversation._id,
-          isTyping: true,
-        });
-
-        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-        typingTimeoutRef.current = setTimeout(() => {
-          socket.emit("typing", {
-            conversationId: activeConversation._id,
-            isTyping: false,
-          });
-        }, 2000);
-      }
-    }
-  };
-
-  const handleEdit = async (messageId) => {
-    if (!editingText.trim()) return;
-    try {
-      await editMessage(messageId, editingText);
-      setEditingMessageId(null);
-      setEditingText("");
-    } catch (err) {
-      console.error("Failed to edit message", err);
-    }
-  };
-
-  const handleDelete = async (messageId) => {
-    if (!window.confirm("Delete this message?")) return;
-    try {
-      await deleteMessage(messageId);
-    } catch (err) {
-      console.error("Failed to delete message", err);
-    }
-  };
-
-  const toggleReaction = async (messageId, emoji) => {
-    try {
-      await reactToMessage(messageId, emoji);
-    } catch (err) {
-      console.error("Failed to react to message", err);
-    }
-  };
-
-  const handleConversationSetting = async (key, value) => {
-    if (!activeConversation) return;
-    try {
-      await updateConversationSettings(activeConversation._id, { [key]: value });
-    } catch (err) {
-      console.error("Failed to update conversation", err);
-    }
-  };
-
+  /* send */
   const handleSend = async () => {
     if ((!messageText.trim() && !mediaUrl) || !activeConversation) return;
     const text = messageText.trim();
-    const url = mediaUrl;
-    const type = mediaType;
-
-    // Clear input instantly for snappy feel
-    setMessageText("");
-    setMediaUrl("");
-    setMediaType("");
-
+    const url = mediaUrl; const type = mediaType;
+    setMessageText(""); setMediaUrl(""); setMediaType("");
+    if (textareaRef.current) { textareaRef.current.style.height = "auto"; }
     try {
       await sendMessage(activeConversation._id, text, url, type, replyingTo?._id || null);
       setReplyingTo(null);
-    } catch {
-      // Optimistic message is already removed by the store on failure
-    }
+    } catch { /* noop */ }
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
-  const getOtherParticipant = (conversation) => {
-    return conversation.participants?.find((p) => p._id !== currentUser?.id) || conversation.participants?.[0];
+  const handleEdit = async (msgId) => {
+    if (!editingText.trim()) return;
+    try { await editMessage(msgId, editingText); setEditingMessageId(null); setEditingText(""); } catch { /* noop */ }
   };
 
+  const handleDelete = async (msgId) => {
+    if (!window.confirm("Delete this message?")) return;
+    try { await deleteMessage(msgId); } catch { /* noop */ }
+  };
+
+  const handleConvSetting = async (key, value) => {
+    if (!activeConversation) return;
+    try { await updateConversationSettings(activeConversation._id, { [key]: value }); } catch { /* noop */ }
+  };
+
+  const getOther = (conv) => {
+    const myId = String(currentUser?.id || currentUser?._id || "");
+    return conv?.participants?.find((p) => String(p._id || p.id) !== myId) || conv?.participants?.[0];
+  };
+
+  const isOnline = (uid) => onlineUserIds.includes(String(uid));
+
+  const filteredConvs = conversations.filter((c) => {
+    if (!searchQuery.trim()) return true;
+    const o = getOther(c);
+    return (o?.displayName || o?.username || "").toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
+  const otherUser = activeConversation ? getOther(activeConversation) : null;
+  const grouped = groupMessages(messages);
+
+  /* right-click / long-press context menu */
+  const openContextMenu = (e, msg, isMe) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ msgId: msg._id, msg, isMe });
+  };
+
+  /* ───── render ───── */
   return (
-    <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
-      <h1 className="text-xl font-bold text-white mb-3 sm:mb-4">Messages</h1>
-      <div className="glass rounded-2xl overflow-hidden flex flex-col lg:flex-row" style={{ minHeight: "calc(100vh - 140px)" }}>
-        {/* Conversations Sidebar */}
-        <div className={`w-full lg:w-80 lg:flex-shrink-0 border-b lg:border-b-0 lg:border-r border-white/8 flex-col ${
-          activeConversation ? "hidden lg:flex" : "flex"
-        }`}>
-          <div className="p-4 border-b border-white/8">
-            <p className="text-sm font-semibold text-gray-400">Conversations</p>
+    <>
+      <style>{`
+        /* ════ CSS variables for theming ════ */
+        :root {
+          --ig-bg:         #000;
+          --ig-bg-card:    #1a1a1a;
+          --ig-bg-hover:   #111;
+          --ig-bg-alt:     #0d0d0d;
+          --ig-border:     #1a1a1a;
+          --ig-border-md:  #333;
+          --ig-text:       #fff;
+          --ig-text-sub:   #555;
+          --ig-text-meta:  #888;
+          --ig-bubble-in:  #262626;
+          --ig-bubble-in-text: #fff;
+          --ig-input-bg:   #1a1a1a;
+          --ig-input-border: #333;
+          --ig-input-focus: #555;
+          --ig-input-ph:   #555;
+          --ig-shadow:     rgba(0,0,0,0.6);
+          --ig-shadow-lg:  rgba(0,0,0,0.7);
+          --ig-online-border: #000;
+        }
+        html.light-mode {
+          --ig-bg:         #fafafa;
+          --ig-bg-card:    #fff;
+          --ig-bg-hover:   #f2f2f2;
+          --ig-bg-alt:     #f7f7f7;
+          --ig-border:     #dbdbdb;
+          --ig-border-md:  #dbdbdb;
+          --ig-text:       #262626;
+          --ig-text-sub:   #8e8e8e;
+          --ig-text-meta:  #aaa;
+          --ig-bubble-in:  #efefef;
+          --ig-bubble-in-text: #262626;
+          --ig-input-bg:   #fff;
+          --ig-input-border: #dbdbdb;
+          --ig-input-focus: #aaa;
+          --ig-input-ph:   #aaa;
+          --ig-shadow:     rgba(0,0,0,0.12);
+          --ig-shadow-lg:  rgba(0,0,0,0.15);
+          --ig-online-border: #fafafa;
+        }
+
+        .ig-sidebar { background: var(--ig-bg); }
+        .ig-chat    { background: var(--ig-bg-card); }
+
+        .ig-bubble-out {
+          background: linear-gradient(135deg, #c13584 0%, #e1306c 35%, #f77737 70%, #fcaf45 100%);
+          color: #fff;
+          border-radius: 22px 22px 4px 22px;
+        }
+        .ig-bubble-out.tail-less { border-radius: 22px 22px 4px 22px; }
+        .ig-bubble-out.first    { border-radius: 22px 22px 4px 22px; }
+        .ig-bubble-out.middle   { border-radius: 22px 4px 4px 22px; }
+        .ig-bubble-out.last     { border-radius: 22px 22px 4px 22px; }
+        .ig-bubble-out.solo     { border-radius: 22px 22px 4px 22px; }
+
+        .ig-bubble-in {
+          background: var(--ig-bubble-in);
+          color: var(--ig-bubble-in-text);
+          border-radius: 22px 22px 22px 4px;
+        }
+        .ig-bubble-in.first  { border-radius: 22px 22px 22px 4px; }
+        .ig-bubble-in.middle { border-radius: 4px 22px 22px 4px; }
+        .ig-bubble-in.last   { border-radius: 4px 22px 22px 22px; }
+        .ig-bubble-in.solo   { border-radius: 22px 22px 22px 4px; }
+
+        .ig-input {
+          background: var(--ig-input-bg);
+          border: 1.5px solid var(--ig-input-border);
+          border-radius: 24px;
+          color: var(--ig-text);
+          padding: 10px 16px;
+          font-size: 14px;
+          outline: none;
+          resize: none;
+          width: 100%;
+          line-height: 1.4;
+          min-height: 44px;
+          max-height: 120px;
+          transition: border-color 0.2s;
+        }
+        .ig-input:focus { border-color: var(--ig-input-focus); }
+        .ig-input::placeholder { color: var(--ig-input-ph); }
+
+        .ig-icon-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          color: var(--ig-text);
+          cursor: pointer;
+          background: transparent;
+          border: none;
+          transition: background 0.15s;
+          flex-shrink: 0;
+        }
+        .ig-icon-btn:hover { background: var(--ig-bg-hover); }
+
+        .ig-send-btn {
+          background: transparent;
+          border: none;
+          color: #0095f6;
+          font-weight: 700;
+          font-size: 14px;
+          cursor: pointer;
+          padding: 0 4px;
+          flex-shrink: 0;
+          transition: opacity 0.15s;
+        }
+        .ig-send-btn:disabled { opacity: 0.35; cursor: default; }
+
+        .ig-conv-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 8px 16px;
+          cursor: pointer;
+          transition: background 0.15s;
+          position: relative;
+        }
+        .ig-conv-item:hover  { background: var(--ig-bg-hover); }
+        .ig-conv-item.active { background: var(--ig-bg-hover); }
+
+        .ig-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 16px;
+          border-bottom: 1px solid var(--ig-border);
+          background: var(--ig-bg);
+        }
+
+        .ig-reaction-bar {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          background: var(--ig-bg-card);
+          border: 1px solid var(--ig-border-md);
+          border-radius: 24px;
+          padding: 6px 10px;
+          position: absolute;
+          bottom: calc(100% + 6px);
+          z-index: 50;
+          box-shadow: 0 4px 20px var(--ig-shadow);
+        }
+        .ig-reaction-bar.align-right { right: 0; }
+        .ig-reaction-bar.align-left  { left: 0; }
+
+        .ig-reaction-btn {
+          font-size: 22px;
+          background: none;
+          border: none;
+          cursor: pointer;
+          border-radius: 50%;
+          padding: 2px;
+          transition: transform 0.15s;
+          line-height: 1;
+        }
+        .ig-reaction-btn:hover { transform: scale(1.3); }
+
+        .ctx-menu {
+          position: fixed;
+          background: var(--ig-bg-card);
+          border: 1px solid var(--ig-border-md);
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 8px 32px var(--ig-shadow-lg);
+          z-index: 100;
+          min-width: 180px;
+          animation: fadeIn 0.15s ease;
+        }
+        .ctx-item {
+          display: block;
+          width: 100%;
+          text-align: left;
+          padding: 13px 18px;
+          background: none;
+          border: none;
+          color: var(--ig-text);
+          font-size: 14px;
+          cursor: pointer;
+          transition: background 0.12s;
+        }
+        .ctx-item:hover { background: var(--ig-bg-hover); }
+        .ctx-item.danger { color: #ff4444; }
+
+        /* Hover action bar */
+        .msg-action-bar {
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.15s;
+          flex-shrink: 0;
+        }
+        .msg-row:hover .msg-action-bar {
+          opacity: 1;
+          pointer-events: auto;
+        }
+        .msg-action-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 30px;
+          height: 30px;
+          border-radius: 50%;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          color: var(--ig-text-meta);
+          font-size: 15px;
+          transition: background 0.12s, color 0.12s;
+        }
+        .msg-action-btn:hover {
+          background: var(--ig-bg-hover);
+          color: var(--ig-text);
+        }
+        .msg-action-btn.danger:hover {
+          background: rgba(255,68,68,0.15);
+          color: #ff4444;
+        }
+        .emoji-quick-bar {
+          position: absolute;
+          bottom: calc(100% + 6px);
+          background: var(--ig-bg-card);
+          border: 1px solid var(--ig-border-md);
+          border-radius: 24px;
+          padding: 6px 10px;
+          display: flex;
+          gap: 4px;
+          box-shadow: 0 4px 20px var(--ig-shadow);
+          z-index: 60;
+          animation: fadeIn 0.12s ease;
+          white-space: nowrap;
+        }
+
+        .typing-dot {
+          width: 7px; height: 7px;
+          border-radius: 50%;
+          background: var(--ig-text-sub);
+          animation: typing-bounce 1.2s infinite ease-in-out;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing-bounce {
+          0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+          30% { transform: translateY(-5px); opacity: 1; }
+        }
+
+        .ig-scrollbar::-webkit-scrollbar { width: 0; }
+        .ig-scrollbar { scrollbar-width: none; }
+
+        .online-dot {
+          position: absolute;
+          bottom: 1px; right: 1px;
+          width: 11px; height: 11px;
+          background: #39e75f;
+          border-radius: 50%;
+          border: 2px solid var(--ig-online-border);
+        }
+
+        .unread-badge {
+          min-width: 20px; height: 20px;
+          background: #0095f6;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+          font-weight: 700;
+          color: #fff;
+          padding: 0 5px;
+        }
+
+        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+      `}</style>
+
+      <div style={{ display: "flex", height: "calc(100svh - 56px)", overflow: "hidden", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif" }}>
+
+        {/* ══════════ SIDEBAR ══════════ */}
+        <aside
+          className="ig-sidebar ig-scrollbar"
+          style={{
+            width: "100%",
+            maxWidth: activeConversation ? 0 : "100%",
+            flexShrink: 0,
+            display: "flex",
+            flexDirection: "column",
+            borderRight: "1px solid var(--ig-border)",
+            overflow: "hidden",
+            transition: "max-width 0.25s ease",
+          }}
+          // On sm+ screens always show sidebar
+          id="ig-sidebar"
+        >
+          <style>{`
+            @media (min-width: 640px) {
+              #ig-sidebar {
+                max-width: 360px !important;
+                min-width: 280px;
+                display: flex !important;
+              }
+              #ig-chat-pane {
+                display: flex !important;
+              }
+            }
+          `}</style>
+
+          {/* Sidebar top */}
+          <div style={{ padding: "12px 16px 8px", borderBottom: "1px solid var(--ig-border)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <span style={{ fontWeight: 700, fontSize: 16, color: "var(--ig-text)" }}>Messages</span>
+              <button className="ig-icon-btn" onClick={() => {}} title="New message" style={{ width: 32, height: 32 }}>
+                <IgEdit />
+              </button>
+            </div>
+            {/* Search */}
+            <div style={{ position: "relative" }}>
+              <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--ig-text-sub)" }}>
+                <IgSearch />
+              </span>
+              <input
+                type="text"
+                placeholder="Search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: "100%", background: "var(--ig-bg-hover)", border: "none",
+                  borderRadius: 10, padding: "9px 12px 9px 40px",
+                  color: "var(--ig-text)", fontSize: 14, outline: "none",
+                }}
+              />
+            </div>
           </div>
-          <div className="flex-1 overflow-y-auto">
+
+          {/* Conversation list */}
+          <div className="ig-scrollbar" style={{ flex: 1, overflowY: "auto", paddingTop: 4 }}>
             {loading ? (
-              <div className="flex justify-center py-10">
-                <svg className="w-5 h-5 animate-spin text-brand-500" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                </svg>
-              </div>
-            ) : conversations.length === 0 ? (
-              <div className="p-6 text-center">
-                <div className="text-3xl mb-2">💬</div>
-                <p className="text-gray-500 text-sm">No conversations yet.</p>
-                <p className="text-gray-600 text-xs mt-1">Visit a user's profile to start a DM.</p>
+              [1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="ig-conv-item">
+                  <div className="skeleton" style={{ width: 56, height: 56, borderRadius: "50%", flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <div className="skeleton" style={{ height: 13, width: "55%", marginBottom: 8, borderRadius: 6 }} />
+                    <div className="skeleton" style={{ height: 11, width: "75%", borderRadius: 6 }} />
+                  </div>
+                </div>
+              ))
+            ) : filteredConvs.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--ig-text-sub)" }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>💬</div>
+                <p style={{ fontWeight: 600, color: "var(--ig-text)", marginBottom: 4 }}>
+                  {searchQuery ? "No results" : "No conversations"}
+                </p>
+                <p style={{ fontSize: 13 }}>
+                  {searchQuery ? "Try a different name" : "Visit a profile to send a message."}
+                </p>
               </div>
             ) : (
-              conversations.map((conv) => {
-                const other = getOtherParticipant(conv);
+              filteredConvs.map((conv) => {
+                const other = getOther(conv);
                 const isActive = activeConversation?._id === conv._id;
+                const online = isOnline(other?._id);
+                const unread = conv.unreadCount > 0;
                 return (
-                  <button
+                  <div
                     key={conv._id}
+                    className={`ig-conv-item${isActive ? " active" : ""}`}
                     onClick={() => selectConversation(conv)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-all text-left ${
-                      isActive ? "bg-brand-600/10 border-l-2 border-brand-500" : ""
-                    }`}
                   >
-                    <Avatar
-                      src={other?.avatarUrl}
-                      name={other?.displayName}
-                      username={other?.username}
-                      size="md"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">
-                        {other?.displayName || other?.username}
-                      </p>
-                      <p className="text-xs text-gray-500 truncate">
-                        {conv.lastMessage || "No messages yet"}
-                      </p>
+                    {/* Avatar */}
+                    <div style={{ position: "relative", flexShrink: 0 }}>
+                      <div style={{
+                        width: 56, height: 56, borderRadius: "50%", overflow: "hidden",
+                        background: "linear-gradient(135deg,#c13584,#e1306c,#f77737)",
+                        padding: 2, flexShrink: 0,
+                      }}>
+                        <div style={{ width: "100%", height: "100%", borderRadius: "50%", overflow: "hidden", background: "var(--ig-bg)" }}>
+                          <Avatar src={other?.avatarUrl} name={other?.displayName} username={other?.username} size="md" />
+                        </div>
+                      </div>
+                      {online && <span className="online-dot" />}
                     </div>
-                    <span className="text-[10px] text-gray-600 flex-shrink-0">
-                      {formatTime(conv.updatedAt)}
-                    </span>
-                  </button>
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                        <span style={{ fontWeight: unread ? 700 : 500, fontSize: 14, color: "var(--ig-text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {other?.displayName || other?.username}
+                        </span>
+                        <span style={{ fontSize: 11, color: unread ? "#0095f6" : "var(--ig-text-sub)", flexShrink: 0, fontWeight: unread ? 600 : 400 }}>
+                          {formatListTime(conv.updatedAt)}
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 2, gap: 6 }}>
+                        <span style={{ fontSize: 13, color: unread ? "var(--ig-text)" : "var(--ig-text-sub)", fontWeight: unread ? 500 : 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {conv.lastMessage || "Start a conversation"}
+                        </span>
+                        {unread && (
+                          <span className="unread-badge">{conv.unreadCount > 9 ? "9+" : conv.unreadCount}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 );
               })
             )}
           </div>
-        </div>
+        </aside>
 
-        {/* Chat Area */}
-        <div className={`flex-1 flex-col ${activeConversation ? "flex" : "hidden lg:flex"} min-h-[50vh]`}>
+        {/* ══════════ CHAT PANE ══════════ */}
+        <main
+          id="ig-chat-pane"
+          className="ig-chat"
+          style={{
+            flex: 1, minWidth: 0, display: activeConversation ? "flex" : "none",
+            flexDirection: "column", overflow: "hidden",
+          }}
+        >
           {!activeConversation ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-10">
-              <div className="text-5xl mb-4">💬</div>
-              <p className="text-gray-400 font-medium">Select a conversation</p>
-              <p className="text-gray-600 text-sm mt-1">
-                Or go to a user's profile and click "Message".
-              </p>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 32 }}>
+              <div style={{ width: 80, height: 80, borderRadius: "50%", border: "2px solid var(--ig-border-md)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>💬</div>
+              <div style={{ textAlign: "center" }}>
+                <p style={{ fontWeight: 600, color: "var(--ig-text)", fontSize: 16, marginBottom: 6 }}>Your messages</p>
+                <p style={{ color: "var(--ig-text-sub)", fontSize: 14 }}>Send private messages to a friend.</p>
+              </div>
             </div>
           ) : (
             <>
-              {/* Chat Header */}
-              <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-3 sm:py-4 border-b border-white/8">
+              {/* ── Chat header ── */}
+              <div className="ig-header">
+                {/* Mobile back */}
                 <button
+                  className="ig-icon-btn"
                   onClick={() => selectConversation(null)}
-                  className="lg:hidden p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/8 mr-1"
-                  title="Back to conversations"
+                  style={{ display: "none" }}
+                  id="ig-back-btn"
                 >
-                  ←
+                  <IgBack />
                 </button>
-                {(() => {
-                  const other = getOtherParticipant(activeConversation);
-                  return (
-                    <>
-                      <Avatar src={other?.avatarUrl} name={other?.displayName} username={other?.username} size="md" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-white truncate">{other?.displayName || other?.username}</p>
-                        <p className="text-xs text-gray-500 truncate">@{other?.username}</p>
-                      </div>
-                    </>
-                  );
-                })()}
-                <div className="ml-auto flex items-center gap-1">
+                <style>{`
+                  @media (max-width: 639px) { #ig-back-btn { display: flex !important; } }
+                `}</style>
+
+                {/* Avatar */}
+                <div style={{ position: "relative", flexShrink: 0 }}>
+                  <div style={{
+                    width: 42, height: 42, borderRadius: "50%", overflow: "hidden",
+                    background: "linear-gradient(135deg,#c13584,#e1306c,#f77737)",
+                    padding: 2,
+                  }}>
+                    <div style={{ width: "100%", height: "100%", borderRadius: "50%", overflow: "hidden", background: "var(--ig-bg)" }}>
+                      <Avatar src={otherUser?.avatarUrl} name={otherUser?.displayName} username={otherUser?.username} size="sm" />
+                    </div>
+                  </div>
+                  {isOnline(otherUser?._id) && <span className="online-dot" />}
+                </div>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontWeight: 700, fontSize: 14, color: "var(--ig-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {otherUser?.displayName || otherUser?.username}
+                  </p>
+                  <p style={{ fontSize: 12, color: isOtherTyping ? "#0095f6" : isOnline(otherUser?._id) ? "#39e75f" : "var(--ig-text-sub)", marginTop: 1 }}>
+                    {isOtherTyping ? "typing…" : isOnline(otherUser?._id) ? "Active now" : `@${otherUser?.username}`}
+                  </p>
+                </div>
+
+                {/* Header actions */}
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   <button
-                    onClick={() => handleConversationSetting("muted", !activeConversation.muted)}
-                    className={`p-2 rounded-lg text-xs ${activeConversation.muted ? "bg-brand-500/20 text-brand-300" : "text-gray-500 hover:text-white"}`}
+                    className="ig-icon-btn"
                     title={activeConversation.muted ? "Unmute" : "Mute"}
-                  >🔕</button>
-                  <button
-                    onClick={() => handleConversationSetting("archived", !activeConversation.archived)}
-                    className="p-2 rounded-lg text-xs text-gray-500 hover:text-white"
-                    title={activeConversation.archived ? "Unarchive" : "Archive"}
-                  >🗃️</button>
+                    onClick={() => handleConvSetting("muted", !activeConversation.muted)}
+                    style={{ color: activeConversation.muted ? "#0095f6" : "var(--ig-text)" }}
+                  >
+                    {activeConversation.muted ? "🔕" : "🔔"}
+                  </button>
+                  <button className="ig-icon-btn" onClick={() => setShowInfo((v) => !v)} title="Info">
+                    <IgInfo />
+                  </button>
                 </div>
               </div>
 
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto px-3 sm:px-5 py-3 sm:py-4 space-y-3">
+              {/* ── Message thread ── */}
+              <div className="ig-scrollbar" style={{ flex: 1, overflowY: "auto", padding: "12px 12px 4px", display: "flex", flexDirection: "column", gap: 2 }}>
+
                 {messagesLoading ? (
-                  <div className="flex justify-center py-8">
-                    <svg className="w-5 h-5 animate-spin text-brand-500" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                    </svg>
+                  <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ width: 28, height: 28, border: "2.5px solid #0095f6", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
                   </div>
                 ) : messages.length === 0 ? (
-                  <p className="text-center text-gray-600 text-sm py-8">No messages yet. Say hi! 👋</p>
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: 32, textAlign: "center" }}>
+                    <div style={{ width: 80, height: 80, borderRadius: "50%", overflow: "hidden", background: "linear-gradient(135deg,#c13584,#e1306c,#f77737)", padding: 3 }}>
+                      <div style={{ width: "100%", height: "100%", borderRadius: "50%", overflow: "hidden", background: "var(--ig-bg)" }}>
+                        <Avatar src={otherUser?.avatarUrl} name={otherUser?.displayName} username={otherUser?.username} size="xl" />
+                      </div>
+                    </div>
+                    <div>
+                      <p style={{ fontWeight: 700, color: "var(--ig-text)", fontSize: 15 }}>{otherUser?.displayName || otherUser?.username}</p>
+                      <p style={{ color: "var(--ig-text-sub)", fontSize: 13, marginTop: 4 }}>@{otherUser?.username}</p>
+                    </div>
+                    <p style={{ color: "var(--ig-text-sub)", fontSize: 14, marginTop: 8 }}>Send a message to start a conversation 👋</p>
+                  </div>
                 ) : (
                   <>
-                  {hasMoreMessages && (
-                    <div className="flex justify-center pb-2">
-                      <button
-                        onClick={loadOlderMessages}
-                        disabled={messagesLoading}
-                        className="text-xs text-brand-400 hover:text-brand-300 disabled:opacity-50"
-                      >
-                        Load older messages
-                      </button>
-                    </div>
-                  )}
-                  {messages.map((msg) => {
-                    const isMe = msg.sender?._id === currentUser?.id || msg.sender === currentUser?.id;
-                    return (
-                      <div key={msg._id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                        {!isMe && (
-                          <Avatar
-                            src={msg.sender?.avatarUrl}
-                            name={msg.sender?.displayName}
-                            username={msg.sender?.username}
-                            size="sm"
-                            className="mr-2 flex-shrink-0 self-end"
-                          />
-                        )}
-                        <div
-                          className={`max-w-[85%] sm:max-w-[70%] px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-sm leading-relaxed ${
-                            isMe
-                              ? "bg-brand-600 text-white rounded-br-sm"
-                              : "bg-white/8 text-gray-200 rounded-bl-sm"
-                          }`}
+                    {hasMoreMessages && (
+                      <div style={{ textAlign: "center", padding: "8px 0 12px" }}>
+                        <button
+                          onClick={loadOlderMessages}
+                          disabled={messagesLoading}
+                          style={{ background: "none", border: "none", color: "#0095f6", fontSize: 13, cursor: "pointer", fontWeight: 600 }}
                         >
-                          {/* Image Attachment */}
-                          {msg.mediaUrl && msg.mediaType === "image" && (
-                            <img
-                              src={msg.mediaUrl}
-                              alt="Attachment"
-                              className="rounded-xl max-h-60 object-cover w-full mb-2 border border-white/10"
-                            />
-                          )}
+                          Load earlier messages
+                        </button>
+                      </div>
+                    )}
 
-                          {/* Audio Voice Note */}
-                          {msg.mediaUrl && msg.mediaType === "audio" && (
-                            <audio
-                              controls
-                              src={msg.mediaUrl}
-                              className="my-1 max-w-full rounded-lg"
-                            />
-                          )}
+                    {grouped.map((msg) => {
+                      const myId = String(currentUser?.id || currentUser?._id || "");
+                      const senderId = String(msg.sender?._id || msg.sender?.id || msg.sender || "");
+                      const isMe = Boolean(myId && senderId === myId);
+                      const isDeleted = !!msg.deletedAt;
 
-                          {msg.replyTo && (
-                            <div className="mb-2 px-2 py-1 rounded-lg bg-black/10 text-[11px] opacity-70 border-l-2 border-white/30">
-                              Replying to {msg.replyTo.sender?.displayName || msg.replyTo.sender?.username}:{" "}
-                              {msg.replyTo.body || "attachment"}
+                      // bubble shape class
+                      let shapeClass = "";
+                      if (msg.firstInGroup && msg.lastInGroup) shapeClass = "solo";
+                      else if (msg.firstInGroup) shapeClass = "first";
+                      else if (msg.lastInGroup) shapeClass = "last";
+                      else shapeClass = "middle";
+
+                      return (
+                        <div key={msg._id}>
+                          {/* Date divider */}
+                          {msg.showDateDivider && (
+                            <div style={{ textAlign: "center", padding: "16px 0 8px", color: "var(--ig-text-sub)", fontSize: 12 }}>
+                              {formatBubbleTime(msg.createdAt)}
                             </div>
                           )}
 
-                          {editingMessageId === msg._id ? (
-                            <div className="flex gap-2">
-                              <input
-                                value={editingText}
-                                onChange={(e) => setEditingText(e.target.value)}
-                                onKeyDown={(e) => e.key === "Enter" && handleEdit(msg._id)}
-                                className="flex-1 bg-black/20 rounded-lg px-2 py-1 text-sm outline-none"
-                                autoFocus
-                              />
-                              <button onClick={() => handleEdit(msg._id)} className="text-xs">Save</button>
-                              <button onClick={() => setEditingMessageId(null)} className="text-xs opacity-60">Cancel</button>
+                          {/* Sender name for incoming (first in group) */}
+                          {!isMe && msg.firstInGroup && (
+                            <div style={{ fontSize: 12, color: "var(--ig-text-sub)", marginLeft: 48, marginBottom: 2 }}>
+                              {msg.sender?.displayName || msg.sender?.username}
                             </div>
-                          ) : msg.deletedAt ? (
-                            <p className="italic opacity-50">Message deleted</p>
-                          ) : (
-                            <>
-                              {msg.body && <p className="whitespace-pre-wrap break-words">{msg.body}</p>}
-                              <div className="flex items-center gap-2 mt-1">
+                          )}
+
+                          <div
+                            className="msg-row"
+                            style={{
+                              display: "flex",
+                              alignItems: "flex-end",
+                              gap: 6,
+                              flexDirection: isMe ? "row-reverse" : "row",
+                              marginBottom: msg.lastInGroup ? 4 : 1,
+                              position: "relative",
+                            }}
+                            onMouseEnter={() => !isDeleted && setHoveredMsgId(msg._id)}
+                            onMouseLeave={() => { setHoveredMsgId(null); setEmojiPickerMsgId(null); }}
+                          >
+                            {/* Incoming avatar (last in group only) */}
+                            <div style={{ width: 32, flexShrink: 0, alignSelf: "flex-end" }}>
+                              {!isMe && msg.lastInGroup && (
+                                <div style={{ width: 30, height: 30, borderRadius: "50%", overflow: "hidden", background: "var(--ig-bg-card)" }}>
+                                  <Avatar src={msg.sender?.avatarUrl} name={msg.sender?.displayName} username={msg.sender?.username} size="xs" />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Bubble column */}
+                            <div style={{ maxWidth: "72%", display: "flex", flexDirection: "column", alignItems: isMe ? "flex-end" : "flex-start", gap: 1 }}>
+
+                              {/* Reply preview */}
+                              {msg.replyTo && !isDeleted && (
+                                <div style={{
+                                  fontSize: 12, color: "var(--ig-text-meta)", borderLeft: "3px solid #0095f6",
+                                  paddingLeft: 8, marginBottom: 4, maxWidth: "100%", background: "var(--ig-bg-hover)",
+                                  borderRadius: 8, padding: "4px 10px",
+                                }}>
+                                  <span style={{ color: "#0095f6", fontWeight: 600 }}>
+                                    {msg.replyTo.sender?.displayName || msg.replyTo.sender?.username}
+                                  </span>
+                                  <span style={{ marginLeft: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
+                                    {msg.replyTo.body || "📎 attachment"}
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Edit mode */}
+                              {editingMessageId === msg._id ? (
+                                <div style={{ display: "flex", gap: 8, alignItems: "center", width: "100%" }}>
+                                  <input
+                                    value={editingText}
+                                    onChange={(e) => setEditingText(e.target.value)}
+                                    onKeyDown={(e) => e.key === "Enter" && handleEdit(msg._id)}
+                                    style={{
+                                      flex: 1, background: "var(--ig-input-bg)", border: "1px solid #0095f6",
+                                      borderRadius: 20, padding: "8px 14px", color: "var(--ig-text)", fontSize: 14, outline: "none",
+                                    }}
+                                    autoFocus
+                                  />
+                                  <button onClick={() => handleEdit(msg._id)} style={{ color: "#0095f6", fontWeight: 700, fontSize: 14, background: "none", border: "none", cursor: "pointer" }}>Save</button>
+                                  <button onClick={() => setEditingMessageId(null)} style={{ color: "var(--ig-text-sub)", fontSize: 14, background: "none", border: "none", cursor: "pointer" }}>✕</button>
+                                </div>
+                              ) : (
+                                <div
+                                  style={{ position: "relative" }}
+                                  onContextMenu={(e) => !isDeleted && openContextMenu(e, msg, isMe)}
+                                >
+                                  {/* Main bubble */}
+                                  <div
+                                    className={`${isMe ? "ig-bubble-out" : "ig-bubble-in"} ${shapeClass}`}
+                                    style={{
+                                      padding: isDeleted ? "10px 14px" : "10px 14px",
+                                      fontSize: 14, lineHeight: 1.45, wordBreak: "break-word",
+                                      maxWidth: "100%", cursor: "pointer",
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {/* Image */}
+                                    {msg.mediaUrl && msg.mediaType === "image" && !isDeleted && (
+                                      <img
+                                        src={msg.mediaUrl}
+                                        alt="attachment"
+                                        style={{ borderRadius: 12, maxHeight: 240, width: "100%", objectFit: "cover", marginBottom: msg.body ? 8 : 0, cursor: "pointer" }}
+                                        onClick={() => window.open(msg.mediaUrl, "_blank")}
+                                      />
+                                    )}
+                                    {/* Audio */}
+                                    {msg.mediaUrl && msg.mediaType === "audio" && !isDeleted && (
+                                      <audio controls src={msg.mediaUrl} style={{ maxWidth: 200, height: 36, borderRadius: 8, marginBottom: msg.body ? 6 : 0 }} />
+                                    )}
+                                    {/* Text */}
+                                    {isDeleted ? (
+                                      <span style={{ fontStyle: "italic", opacity: 0.5 }}>Message deleted</span>
+                                    ) : (
+                                      msg.body && <span>{msg.body}</span>
+                                    )}
+                                  </div>
+
+                                  {/* Reactions row */}
+                                  {msg.reactions?.length > 0 && !isDeleted && (
+                                    <div style={{ display: "flex", gap: 3, marginTop: 3, justifyContent: isMe ? "flex-end" : "flex-start", flexWrap: "wrap" }}>
+                                      {msg.reactions.map((r, i) => (
+                                        <span key={`${r.user}-${i}`} style={{
+                                          background: "var(--ig-bg-card)", border: "1px solid var(--ig-border-md)",
+                                          borderRadius: 20, padding: "2px 7px", fontSize: 13,
+                                        }}>{r.emoji}</span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Timestamp (last in group only) */}
+                              {msg.lastInGroup && !isDeleted && (
+                                <div style={{
+                                  display: "flex", alignItems: "center", gap: 4,
+                                  fontSize: 11, color: "var(--ig-text-sub)", paddingTop: 2,
+                                  justifyContent: isMe ? "flex-end" : "flex-start",
+                                  paddingLeft: isMe ? 0 : 4,
+                                }}>
+                                  <span>{formatBubbleTime(msg.createdAt)}</span>
+                                  {isMe && (
+                                    <span style={{ color: msg.readAt ? "#0095f6" : "var(--ig-text-sub)", fontWeight: 600 }}>
+                                      {msg.readAt ? "✓✓" : msg.deliveredAt ? "✓✓" : "✓"}
+                                    </span>
+                                  )}
+                                  {msg.editedAt && <span>• edited</span>}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* ── Hover action bar ── */}
+                            {!isDeleted && (
+                              <div className="msg-action-bar" style={{ flexDirection: "column", gap: 2, alignSelf: "center", position: "relative" }}>
+                                {/* Emoji react */}
+                                <div style={{ position: "relative" }}>
+                                  <button
+                                    className="msg-action-btn"
+                                    title="React"
+                                    onClick={(e) => { e.stopPropagation(); setEmojiPickerMsgId(emojiPickerMsgId === msg._id ? null : msg._id); }}
+                                  >
+                                    😊
+                                  </button>
+                                  {emojiPickerMsgId === msg._id && (
+                                    <div
+                                      className="emoji-quick-bar"
+                                      style={{ [isMe ? "right" : "left"]: 0 }}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {EMOJIS.map((em) => (
+                                        <button
+                                          key={em}
+                                          onClick={() => { reactToMessage(msg._id, em); setEmojiPickerMsgId(null); }}
+                                          style={{ background: "none", border: "none", cursor: "pointer", fontSize: 22, padding: "0 2px", transition: "transform 0.12s", lineHeight: 1 }}
+                                          onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.3)"}
+                                          onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+                                        >{em}</button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                                {/* Reply */}
                                 <button
-                                  onClick={() => setReplyingTo(msg)}
-                                  className="text-[10px] opacity-50 hover:opacity-100"
+                                  className="msg-action-btn"
                                   title="Reply"
-                                >↩ Reply</button>
-                                <button
-                                  onClick={() => toggleReaction(msg._id, "❤️")}
-                                  className="text-[10px] opacity-50 hover:opacity-100"
-                                  title="React"
-                                >❤️</button>
-                                {!isMe && <ReportButton targetType="message" targetId={msg._id} />}
+                                  onClick={() => setReplyingTo(msg)}
+                                >
+                                  ↩
+                                </button>
+                                {/* Edit (own only) */}
                                 {isMe && (
-                                  <>
-                                    <button
-                                      onClick={() => { setEditingMessageId(msg._id); setEditingText(msg.body || ""); }}
-                                      className="text-[10px] opacity-50 hover:opacity-100"
-                                    >Edit</button>
-                                    <button
-                                      onClick={() => handleDelete(msg._id)}
-                                      className="text-[10px] opacity-50 hover:opacity-100"
-                                    >Delete</button>
-                                  </>
+                                  <button
+                                    className="msg-action-btn"
+                                    title="Edit message"
+                                    onClick={() => { setEditingMessageId(msg._id); setEditingText(msg.body || ""); }}
+                                  >
+                                    ✏️
+                                  </button>
+                                )}
+                                {/* Delete (own only) */}
+                                {isMe && (
+                                  <button
+                                    className="msg-action-btn danger"
+                                    title="Delete message"
+                                    onClick={() => handleDelete(msg._id)}
+                                  >
+                                    🗑
+                                  </button>
                                 )}
                               </div>
-                            </>
-                          )}
-
-                          {msg.reactions?.length > 0 && (
-                            <div className="flex gap-1 mt-1">
-                              {msg.reactions.map((r, i) => <span key={`${r.user}-${i}`} className="text-xs bg-black/10 rounded-full px-1.5 py-0.5">{r.emoji}</span>)}
-                            </div>
-                          )}
-
-                          <p className={`text-[10px] mt-1 ${isMe ? "text-white/50" : "text-gray-600"}`}>
-                            {formatTime(msg.createdAt)}
-                            {isMe && !msg.deletedAt && (
-                              <span className="ml-1">
-                                {msg.readAt ? "✓✓ Read" : msg.deliveredAt ? "✓✓ Delivered" : "✓ Sent"}
-                              </span>
                             )}
-                            {msg.editedAt && <span className="ml-1">edited</span>}
-                          </p>
+
+                            {/* Spacer on other side */}
+                            {isMe && <div style={{ width: 32, flexShrink: 0 }} />}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Typing indicator */}
+                    {isOtherTyping && (
+                      <div style={{ display: "flex", alignItems: "flex-end", gap: 8, marginTop: 4 }}>
+                        <div style={{ width: 30, height: 30, borderRadius: "50%", overflow: "hidden", background: "var(--ig-bg-card)", flexShrink: 0 }}>
+                          <Avatar src={otherUser?.avatarUrl} name={otherUser?.displayName} username={otherUser?.username} size="xs" />
+                        </div>
+                        <div className="ig-bubble-in solo" style={{ padding: "10px 16px", display: "flex", gap: 4, alignItems: "center" }}>
+                          <span className="typing-dot" />
+                          <span className="typing-dot" />
+                          <span className="typing-dot" />
                         </div>
                       </div>
-                    );
-                  })}
+                    )}
                   </>
                 )}
                 <div ref={messagesEndRef} />
               </div>
 
+              {/* ── Reply strip ── */}
               {replyingTo && (
-                <div className="px-5 pt-2 flex items-center justify-between">
-                  <div className="text-xs text-gray-400 border-l-2 border-brand-500 pl-2">
-                    Replying to {replyingTo.sender?.displayName || replyingTo.sender?.username}: {replyingTo.body || "attachment"}
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 10, padding: "8px 16px",
+                  borderTop: "1px solid var(--ig-border)", background: "var(--ig-bg-alt)",
+                }}>
+                  <div style={{ width: 3, height: 36, background: "#0095f6", borderRadius: 2, flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 11, color: "#0095f6", fontWeight: 600, marginBottom: 2 }}>
+                      Replying to {replyingTo.sender?.displayName || replyingTo.sender?.username}
+                    </p>
+                    <p style={{ fontSize: 12, color: "var(--ig-text-sub)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {replyingTo.body || "📎 attachment"}
+                    </p>
                   </div>
-                  <button onClick={() => setReplyingTo(null)} className="text-gray-500 hover:text-white">✕</button>
+                  <button onClick={() => setReplyingTo(null)} style={{ background: "none", border: "none", color: "var(--ig-text-sub)", cursor: "pointer", fontSize: 18, padding: 4 }}>✕</button>
                 </div>
               )}
 
-              {/* Media Preview before send */}
+              {/* ── Media preview ── */}
               {(mediaUrl || uploading) && (
-                <div className="px-5 pt-2 flex items-center gap-3">
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 16px", borderTop: "1px solid var(--ig-border)", background: "var(--ig-bg-alt)" }}>
                   {uploading ? (
-                    <span className="text-xs text-brand-400 animate-pulse">Uploading attachment…</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#0095f6", fontSize: 13 }}>
+                      <div style={{ width: 16, height: 16, border: "2px solid #0095f6", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                      Uploading…
+                    </div>
                   ) : mediaType === "image" ? (
-                    <div className="relative">
-                      <img src={mediaUrl} alt="Preview" className="w-16 h-16 rounded-lg object-cover border border-white/20" />
-                      <button onClick={() => setMediaUrl("")} className="absolute -top-1 -right-1 bg-black/80 rounded-full text-white text-xs w-4 h-4 flex items-center justify-center">✕</button>
+                    <div style={{ position: "relative" }}>
+                      <img src={mediaUrl} alt="preview" style={{ width: 60, height: 60, borderRadius: 12, objectFit: "cover", border: "2px solid var(--ig-border-md)" }} />
+                      <button
+                        onClick={() => { setMediaUrl(""); setMediaType(""); }}
+                        style={{
+                          position: "absolute", top: -6, right: -6, width: 20, height: 20,
+                          background: "var(--ig-bg)", border: "1px solid var(--ig-border-md)", borderRadius: "50%",
+                          color: "var(--ig-text)", cursor: "pointer", fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center",
+                        }}
+                      >✕</button>
                     </div>
                   ) : mediaType === "audio" ? (
-                    <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-xl text-xs text-white">
-                      <span>🎙️ Voice Note Ready</span>
-                      <button onClick={() => setMediaUrl("")} className="text-red-400 font-bold ml-2">✕</button>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--ig-bg-card)", borderRadius: 20, padding: "6px 14px", fontSize: 13, color: "#0095f6" }}>
+                      🎙️ <span>Voice note ready</span>
+                      <button onClick={() => { setMediaUrl(""); setMediaType(""); }} style={{ background: "none", border: "none", color: "var(--ig-text-sub)", cursor: "pointer", marginLeft: 4 }}>✕</button>
                     </div>
                   ) : null}
                 </div>
               )}
 
-              {/* Input */}
-              <div className="px-3 sm:px-5 py-3 sm:py-4 border-t border-white/8">
-                <div className="flex items-center gap-2">
-                  {/* Image Attachment Button */}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleFileSelect}
-                  />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading || recording}
-                    className="p-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/8 transition-all disabled:opacity-40"
-                    title="Attach Image"
-                  >
-                    📷
-                  </button>
+              {/* ── Input bar ── */}
+              <div style={{
+                display: "flex", alignItems: "flex-end", gap: 10,
+                padding: "10px 12px 12px", borderTop: "1px solid var(--ig-border)", background: "var(--ig-bg)",
+              }}>
+                <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileSelect} />
 
-                  {/* Voice Note Button */}
-                  <button
-                    onClick={recording ? stopVoiceRecording : startVoiceRecording}
-                    disabled={uploading}
-                    className={`p-2.5 rounded-xl transition-all ${
-                      recording
-                        ? "bg-red-500 text-white animate-pulse"
-                        : "text-gray-400 hover:text-white hover:bg-white/8"
-                    }`}
-                    title={recording ? "Stop Recording" : "Record Voice Note"}
-                  >
-                    🎙️
-                  </button>
+                {/* Emoji btn (decorative - opens camera or emoji) */}
+                <button className="ig-icon-btn" onClick={() => fileInputRef.current?.click()} title="Attach image" disabled={uploading || recording}>
+                  <IgImage />
+                </button>
 
-                  <textarea
-                    ref={textareaRef}
-                    rows={1}
-                    value={messageText}
-                    onChange={handleTextChange}
-                    onKeyDown={handleKeyDown}
-                    placeholder={recording ? "Recording audio..." : "Type a message…"}
-                    disabled={recording}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-brand-500/50 resize-none transition-all"
-                    style={{ minHeight: "42px", maxHeight: "120px" }}
-                  />
-                  <button
-                    onClick={handleSend}
-                    disabled={(!messageText.trim() && !mediaUrl) || uploading}
-                    className="btn-brand px-3 sm:px-4 py-2 sm:py-2.5 flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100"
-                    title="Send message"
-                  >
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
-                    </svg>
+                <button
+                  className="ig-icon-btn"
+                  onClick={recording ? stopVoice : startVoice}
+                  disabled={uploading}
+                  style={{ color: recording ? "#e1306c" : "var(--ig-text)" }}
+                  title={recording ? "Stop recording" : "Voice note"}
+                >
+                  <IgMic />
+                </button>
+
+                {/* Text input */}
+                <textarea
+                  ref={textareaRef}
+                  rows={1}
+                  className="ig-input"
+                  value={messageText}
+                  onChange={handleTextChange}
+                  onKeyDown={handleKeyDown}
+                  placeholder={recording ? "🔴 Recording…" : "Message…"}
+                  disabled={recording}
+                />
+
+                {/* Send or camera */}
+                {messageText.trim() || mediaUrl ? (
+                  <button className="ig-send-btn" onClick={handleSend} disabled={uploading}>
+                    Send
                   </button>
-                </div>
+                ) : (
+                  <button className="ig-icon-btn" title="Camera" onClick={() => fileInputRef.current?.click()}>
+                    <IgCamera />
+                  </button>
+                )}
               </div>
             </>
           )}
-        </div>
+        </main>
+
+        {/* ══════ CONTEXT MENU ══════ */}
+        {contextMenu && (
+          <div
+            className="ctx-menu"
+            style={{ top: "50%", left: "50%", transform: "translate(-50%,-50%)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Quick reactions */}
+            <div style={{ display: "flex", gap: 6, padding: "12px 14px", borderBottom: "1px solid var(--ig-border-md)" }}>
+              {EMOJIS.map((em) => (
+                <button
+                  key={em}
+                  className="ig-reaction-btn"
+                  onClick={() => { reactToMessage(contextMenu.msgId, em); setContextMenu(null); }}
+                >
+                  {em}
+                </button>
+              ))}
+            </div>
+            <button className="ctx-item" onClick={() => { setReplyingTo(contextMenu.msg); setContextMenu(null); }}>↩ Reply</button>
+            {contextMenu.isMe && (
+              <>
+                <button className="ctx-item" onClick={() => { setEditingMessageId(contextMenu.msgId); setEditingText(contextMenu.msg.body || ""); setContextMenu(null); }}>✏️ Edit</button>
+                <button className="ctx-item danger" onClick={() => { handleDelete(contextMenu.msgId); setContextMenu(null); }}>🗑 Delete</button>
+              </>
+            )}
+            {!contextMenu.isMe && (
+              <div className="ctx-item" style={{ padding: 0 }}>
+                <ReportButton targetType="message" targetId={contextMenu.msgId} />
+              </div>
+            )}
+          </div>
+        )}
       </div>
-    </div>
+    </>
   );
 }

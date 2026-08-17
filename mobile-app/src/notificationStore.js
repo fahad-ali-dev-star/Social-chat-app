@@ -94,7 +94,7 @@ export const useNotificationStore = create((set, get) => ({
     try {
       const [notifRes, convRes] = await Promise.all([
         api.get("/notifications/unread-count").catch(() => ({ data: { count: 0 } })),
-        api.get("/conversations").catch(() => ({ data: { conversations: [] } })),
+        api.get("/messages").catch(() => ({ data: { conversations: [] } })),
       ]);
 
       const unreadNotifCount = notifRes.data?.count || 0;
@@ -144,7 +144,7 @@ export const useNotificationStore = create((set, get) => ({
   fetchConversations: async () => {
     set({ loadingConvs: true });
     try {
-      const { data } = await api.get("/conversations");
+      const { data } = await api.get("/messages");
       const conversations = data.conversations || [];
       const unreadMsgCount = conversations.reduce(
         (sum, c) => sum + (c.unreadCount || 0),
