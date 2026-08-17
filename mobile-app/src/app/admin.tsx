@@ -11,9 +11,12 @@ import {
   Alert,
 } from "react-native";
 import { router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import api from "../api";
 
 export default function AdminScreen() {
+  const insets = useSafeAreaInsets();
+  const paddingTop = Math.max(insets.top, 12);
   const [stats, setStats] = useState<any>(null);
   const [reports, setReports] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -71,7 +74,7 @@ export default function AdminScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { paddingTop }]}>
       {/* Header */}
       <View style={styles.topHeader}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>

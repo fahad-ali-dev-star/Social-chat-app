@@ -10,11 +10,14 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import api from "../../api";
 import UserCard from "../../components/UserCard";
 import PostCard from "../../components/PostCard";
 
 export default function SearchScreen() {
+  const insets = useSafeAreaInsets();
+  const paddingTop = Math.max(insets.top, 12);
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"users" | "posts">("users");
   const [users, setUsers] = useState<any[]>([]);
@@ -70,7 +73,7 @@ export default function SearchScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { paddingTop }]}>
       {/* Search Header */}
       <View style={styles.searchHeader}>
         <TextInput

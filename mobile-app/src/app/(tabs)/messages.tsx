@@ -8,10 +8,13 @@ import {
   SafeAreaView,
   RefreshControl,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMessageStore } from "../../messageStore";
 import ConversationItem from "../../components/ConversationItem";
 
 export default function MessagesScreen() {
+  const insets = useSafeAreaInsets();
+  const paddingTop = Math.max(insets.top, 12);
   const { conversations, loading, loadConversations } = useMessageStore();
 
   useEffect(() => {
@@ -19,7 +22,7 @@ export default function MessagesScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { paddingTop }]}>
       <View style={styles.header}>
         <Text style={styles.title}>Messages</Text>
       </View>

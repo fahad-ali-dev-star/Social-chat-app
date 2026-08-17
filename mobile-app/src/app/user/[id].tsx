@@ -10,12 +10,15 @@ import {
   Image,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import api from "../../api";
 import PostCard from "../../components/PostCard";
 import VerifiedBadge from "../../components/VerifiedBadge";
 import { useMessageStore } from "../../messageStore";
 
 export default function UserProfileScreen() {
+  const insets = useSafeAreaInsets();
+  const paddingTop = Math.max(insets.top, 12);
   const { id: username } = useLocalSearchParams<{ id: string }>();
   const [profileData, setProfileData] = useState<any>(null);
   const [relationship, setRelationship] = useState<any>(null);
@@ -71,7 +74,7 @@ export default function UserProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { paddingTop }]}>
       {/* Header */}
       <View style={styles.topHeader}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>

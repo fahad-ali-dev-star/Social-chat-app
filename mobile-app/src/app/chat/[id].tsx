@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -11,21 +11,26 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  StatusBar as RNStatusBar,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import api from "../../api";
 import { useMessageStore } from "../../messageStore";
 import { useAuthStore } from "../../authStore";
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { messages, messagesLoading, loadMessages, sendMessage, markConversationRead } =
-    useMessageStore();
+  const { messages, messagesLoading, loadMessages, sendMessage } = useMessageStore();
   const currentUser = useAuthStore((s) => s.user);
+  const insets = useSafeAreaInsets();
 
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [recipient, setRecipient] = useState<any>(null);
+
+  const paddingTop = Math.max(insets.top, Platform.OS === "android" ? RNStatusBar.currentHeight || 12 : 12);
+  const paddingBottom = Math.max(insets.bottom + 10, 20);
 
   useEffect(() => {
     if (id) {
@@ -64,30 +69,27 @@ export default function ChatScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { paddingTop }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
         <View style={styles.recipientInfo}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {recipient?.displayName?.[0] || recipient?.username?.[0] || "U"}
-            </Text>
-          </View>
+          {recipient?.avatarUrl ? (
+            <Image source={{ uri: recipient.avatarUrl }} style={styles.avatarImage} />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {recipient?.displayName?.[0] || recipient?.username?.[0] || "U"}
+              </Text>
+            </View>
+          )}
           <View>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
               <Text style={styles.recipientName}>
                 {recipient?.displayName || recipient?.username || "Chat"}
               </Text>
-              {recipient?.isVerified && (
-                <Image
-                  source={require("@/assets/images/5c6a9983d0c9eef8b3912a451cc8a27d.png")}
-                  style={{ width: 14, height: 14 }}
-                  resizeMode="contain"
-                />
-              )}
             </View>
             {recipient?.username ? (
               <Text style={styles.username}>@{recipient.username}</Text>
@@ -134,8 +136,8 @@ export default function ChatScreen() {
           />
         )}
 
-        {/* Input Bar */}
-        <View style={styles.inputContainer}>
+        {/* Input Bar with Bottom Padding */}
+        <View style={[styles.inputContainer, { paddingBottom }]}>
           <TextInput
             style={styles.input}
             placeholder="Type a message..."
@@ -196,6 +198,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  avatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
   avatarText: {
     color: "#fff",
     fontWeight: "bold",
@@ -251,8 +258,9 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
-    gap: 8,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    gap: 10,
     borderTopWidth: 1,
     borderTopColor: "#1e293b",
     backgroundColor: "#0f172a",
@@ -263,15 +271,17 @@ const styles = StyleSheet.create({
     color: "#fff",
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 12,
     fontSize: 15,
     maxHeight: 100,
   },
   sendBtn: {
     backgroundColor: "#6366f1",
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
   sendText: {
     color: "#fff",

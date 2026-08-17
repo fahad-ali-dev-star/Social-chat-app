@@ -8,11 +8,16 @@ import {
   FlatList,
   ActivityIndicator,
   Image,
+  Platform,
+  StatusBar as RNStatusBar,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "../authStore";
 import { useNotificationStore } from "../notificationStore";
 
 export default function MobileHeader({ title }: { title?: string }) {
+  const insets = useSafeAreaInsets();
+  const paddingTop = Math.max(insets.top, Platform.OS === "android" ? RNStatusBar.currentHeight || 12 : 12);
   const { user, logout } = useAuthStore();
   const {
     unreadNotifCount,
@@ -84,7 +89,7 @@ export default function MobileHeader({ title }: { title?: string }) {
       )}
 
       {/* Mobile Top Navbar Bar */}
-      <View style={styles.navbar}>
+      <View style={[styles.navbar, { paddingTop }]}>
         {/* App Logo */}
         <View style={styles.logoRow}>
           <Text style={styles.logoText}>🐝 Buzz Chat</Text>

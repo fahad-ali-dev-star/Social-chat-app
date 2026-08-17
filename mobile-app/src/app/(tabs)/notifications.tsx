@@ -9,9 +9,12 @@ import {
   TouchableOpacity,
   Image,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import api from "../../api";
 
 export default function NotificationsScreen() {
+  const insets = useSafeAreaInsets();
+  const paddingTop = Math.max(insets.top, 12);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -52,7 +55,7 @@ export default function NotificationsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { paddingTop }]}>
       <View style={styles.header}>
         <Text style={styles.title}>Notifications</Text>
       </View>

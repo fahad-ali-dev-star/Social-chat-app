@@ -8,10 +8,13 @@ import {
   SafeAreaView,
   RefreshControl,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import api from "../../api";
 import PostCard from "../../components/PostCard";
 
 export default function BookmarksScreen() {
+  const insets = useSafeAreaInsets();
+  const paddingTop = Math.max(insets.top, 12);
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -32,7 +35,7 @@ export default function BookmarksScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { paddingTop }]}>
       <View style={styles.header}>
         <Text style={styles.title}>Bookmarks</Text>
       </View>

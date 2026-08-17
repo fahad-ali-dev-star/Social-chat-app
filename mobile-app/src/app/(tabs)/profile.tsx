@@ -15,12 +15,15 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import api from "../../api";
 import { useAuthStore } from "../../authStore";
 import PostCard from "../../components/PostCard";
 import VerifiedBadge from "../../components/VerifiedBadge";
 
 export default function ProfileScreen() {
+  const insets = useSafeAreaInsets();
+  const paddingTop = Math.max(insets.top, 12);
   const { user, logout, fetchMe } = useAuthStore();
   const [profileData, setProfileData] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
@@ -124,7 +127,7 @@ export default function ProfileScreen() {
   const isAdmin = user?.role === "admin" || user?.role === "moderator";
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { paddingTop }]}>
       {loading && !profileData ? (
         <View style={styles.centerLoading}>
           <ActivityIndicator color="#6366f1" size="large" />
