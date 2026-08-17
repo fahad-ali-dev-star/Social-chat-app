@@ -25,15 +25,14 @@ jobs:
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
-          expo-version: '6.3.0'
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Install Mobile App Dependencies
         run: |
           cd mobile-app
-          npm install
+          npm install --legacy-peer-deps
 
       - name: Publish EAS Update
         run: |
           cd mobile-app
-          eas update --auto --non-interactive
+          eas update --auto --non-interactive --verbose
