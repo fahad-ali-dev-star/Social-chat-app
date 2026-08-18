@@ -3,13 +3,15 @@ let Notifications = null;
 try {
   Notifications = require("expo-notifications");
   if (Notifications && typeof Notifications.setNotificationHandler === "function") {
-    Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: true,
-      }),
-    });
+    try {
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
+        }),
+      });
+    } catch (e) {}
   }
 } catch (e) {
   // Graceful fallback if expo-notifications is not available
@@ -18,11 +20,12 @@ try {
 export async function registerForPushNotificationsAsync() {
   if (!Notifications) return null;
   try {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    const permRes = await Notifications.getPermissionsAsync().catch(() => null);
+    const existingStatus = permRes?.status;
     let finalStatus = existingStatus;
     if (existingStatus !== "granted") {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
+      const reqRes = await Notifications.requestPermissionsAsync().catch(() => null);
+      finalStatus = reqRes?.status;
     }
     if (finalStatus !== "granted") {
       return null;
@@ -30,7 +33,6 @@ export async function registerForPushNotificationsAsync() {
     const tokenData = await Notifications.getExpoPushTokenAsync().catch(() => null);
     return tokenData?.data || null;
   } catch (err) {
-    console.error("Push token error:", err);
     return null;
   }
 }
@@ -45,10 +47,10 @@ export async function triggerLocalNotification({ title, body, data = {} }) {
           data,
           sound: "default",
         },
-        trigger: null, // trigger immediately
-      });
+        trigger: null,
+      }).catch(() => {});
     } catch (err) {
-      console.error("Local notification error:", err);
+      // Ignore local notification errors
     }
   }
 }
@@ -56,9 +58,9 @@ export async function triggerLocalNotification({ title, body, data = {} }) {
 export async function setAppBadgeCount(count) {
   if (Notifications && typeof Notifications.setBadgeCountAsync === "function") {
     try {
-      await Notifications.setBadgeCountAsync(count);
+      await Notifications.setBadgeCountAsync(count).catch(() => {});
     } catch (err) {
-      // Ignore badge errors on unsupported devices/web/emulators
+      // Ignore badge errors on unsupported devices/emulators
     }
   }
 }
