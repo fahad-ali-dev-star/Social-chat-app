@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -12,6 +12,7 @@ import {
   Image,
 } from "react-native";
 import MobileHeader from "../components/MobileHeader";
+import UserCard from "../components/UserCard";
 import api from "../api";
 
 export default function ExploreScreen() {
@@ -20,8 +21,30 @@ export default function ExploreScreen() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
+  // Load all users (friends + new) on screen mount
+  useEffect(() => {
+    loadDefaultUsers();
+  }, []);
+
+  const loadDefaultUsers = async () => {
+    setLoading(true);
+    setSearched(true);
+    try {
+      const { data } = await api.get(`/users/search?q=`);
+      setUsers(data.users || []);
+    } catch (err) {
+      console.error("Load users error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSearch = async () => {
-    if (!query.trim()) return;
+    if (!query.trim()) {
+      // Reset to default all-users view
+      loadDefaultUsers();
+      return;
+    }
     setLoading(true);
     setSearched(true);
     try {
@@ -65,41 +88,33 @@ export default function ExploreScreen() {
         </View>
       ) : searched && users.length === 0 ? (
         <View style={styles.centerLoading}>
-          <Text style={styles.emptyText}>No users found for "{query}"</Text>
+          <Text style={styles.emptyText}>
+            {query.trim() ? `No users found for "${query}"` : "No users found"}
+          </Text>
         </View>
       ) : (
         <FlatList
           data={users}
-          keyExtractor={(item) => item._id}
-          contentContainerStyle={{ paddingBottom: 24 }}
+          keyExtractor={(item) => item._id || item.id}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
+          ListHeaderComponent={
+            users.length > 0 ? (
+              <Text style={styles.sectionTitle}>Suggestions</Text>
+            ) : null
+          }
           renderItem={({ item }) => (
-            <View style={styles.userCard}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {item.displayName?.[0] || item.username?.[0] || "U"}
-                </Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                  <Text style={styles.displayName}>
-                    {item.displayName || item.username}
-                  </Text>
-                  {item.isVerified && (
-                    <Image
-                      source={require("@/assets/images/5c6a9983d0c9eef8b3912a451cc8a27d.png")}
-                      style={{ width: 16, height: 16 }}
-                      resizeMode="contain"
-                    />
-                  )}
-                </View>
-                <Text style={styles.username}>@{item.username}</Text>
-                {item.bio ? (
-                  <Text style={styles.bio} numberOfLines={1}>
-                    {item.bio}
-                  </Text>
-                ) : null}
-              </View>
-            </View>
+            <UserCard
+              user={item}
+              onFollowToggle={(newFollowing) => {
+                setUsers((prev) =>
+                  prev.map((u) =>
+                    (u._id === item._id || u.id === item._id)
+                      ? { ...u, isFollowing: newFollowing }
+                      : u
+                  )
+                );
+              }}
+            />
           )}
         />
       )}
@@ -154,6 +169,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  sectionTitle: {
+    color: "#94a3b8",
+    fontSize: 13,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 10,
+    marginTop: 4,
   },
   emptyText: {
     color: "#64748b",

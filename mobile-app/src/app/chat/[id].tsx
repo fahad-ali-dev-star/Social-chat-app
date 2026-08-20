@@ -20,6 +20,7 @@ import { useLocalSearchParams, router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { Video, ResizeMode, Audio } from "expo-av";
+import { Ionicons } from "@expo/vector-icons";
 import api from "../../api";
 import { useMessageStore } from "../../messageStore";
 import { useAuthStore } from "../../authStore";
@@ -108,6 +109,35 @@ function VoiceNotePlayer({ uri, isMine }: { uri: string; isMine: boolean }) {
   );
 }
 
+function ChatVideoPlayer({ uri }: { uri: string }) {
+  const [playing, setPlaying] = useState(false);
+  const videoRef = useRef<Video>(null);
+
+  return (
+    <View style={styles.chatVideoContainer}>
+      <Video
+        ref={videoRef}
+        source={{ uri }}
+        style={styles.chatVideo}
+        resizeMode={ResizeMode.COVER}
+        useNativeControls={playing}
+        shouldPlay={playing}
+        isLooping
+      />
+      {!playing && (
+        <TouchableOpacity
+          style={styles.chatVideoPlayOverlay}
+          activeOpacity={0.8}
+          onPress={() => setPlaying(true)}
+        >
+          <Ionicons name="play-circle" size={48} color="rgba(255, 255, 255, 0.9)" />
+          <Text style={styles.chatVideoBadge}>Reel 🎬</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const {
@@ -147,7 +177,7 @@ export default function ChatScreen() {
     insets.top,
     Platform.OS === "android" ? RNStatusBar.currentHeight || 12 : 12
   );
-  const paddingBottom = keyboardVisible ? 0 : Math.max(insets.bottom, 17);
+  const paddingBottom = keyboardVisible ? 8 : Math.max(insets.bottom, 17);
 
   useEffect(() => {
     const showSub = Keyboard.addListener(
@@ -473,7 +503,8 @@ export default function ChatScreen() {
       {/* ── Chat Messages ── */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
       >
         {messagesLoading && messages.length === 0 ? (
           <View style={styles.centerLoading}>
@@ -541,10 +572,12 @@ export default function ChatScreen() {
                         isMine ? styles.myBubble : styles.theirBubble,
                       ]}
                     >
-                      {/* Image or Audio Attachment */}
+                      {/* Image, Video, or Audio Attachment */}
                       {item.mediaUrl && !isDeleted && (
                         (item.mediaType === "audio" || (item.body === "🎤 Voice note" && !item.mediaUrl.match(/\.(png|jpg|jpeg|gif|webp)$/i))) ? (
                           <VoiceNotePlayer uri={item.mediaUrl} isMine={isMine} />
+                        ) : (item.mediaType === "video" || item.mediaType === "reel" || item.body?.includes("🎬") || item.mediaUrl.match(/\.(mp4|webm|mov|m4v|3gp)(\?.*)?$/i)) ? (
+                          <ChatVideoPlayer uri={item.mediaUrl} />
                         ) : (
                           <Image
                             source={{ uri: item.mediaUrl }}
@@ -700,6 +733,9 @@ export default function ChatScreen() {
                 placeholderTextColor="#64748b"
                 value={text}
                 onChangeText={setText}
+                onFocus={() => {
+                  setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+                }}
                 multiline
               />
 
@@ -927,6 +963,37 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 6,
   },
+  chatVideoContainer: {
+    width: 210,
+    height: 150,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: "#000",
+    marginBottom: 6,
+    position: "relative",
+  },
+  chatVideo: {
+    width: "100%",
+    height: "100%",
+  },
+  chatVideoPlayOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  chatVideoBadge: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "bold",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
 
   /* ── Quoted Reply Box ── */
   quotedBox: {
@@ -1050,35 +1117,50 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 8,
-    paddingTop: 2,
-    gap: 6,
+    paddingHorizontal: 6,
+    paddingTop: 4,
+    gap: 4,
     borderTopWidth: 1,
     borderTopColor: "#1e293b",
     backgroundColor: "#0f172a",
   },
   photoBtn: {
-    padding: 5,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: "#1e293b",
+    justifyContent: "center",
+    alignItems: "center",
   },
   photoIcon: {
-    fontSize: 17,
+    fontSize: 16,
+  },
+  voiceBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#1e293b",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  voiceIcon: {
+    fontSize: 16,
   },
   input: {
     flex: 1,
     backgroundColor: "#1e293b",
     color: "#fff",
     borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    fontSize: 14,
-    maxHeight: 90,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    fontSize: 15,
+    minHeight: 38,
+    maxHeight: 100,
   },
   sendBtn: {
     backgroundColor: "#6366f1",
-    paddingHorizontal: 14,
-    paddingVertical: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
@@ -1155,15 +1237,6 @@ const styles = StyleSheet.create({
     color: "#94a3b8",
     fontSize: 15,
     fontWeight: "bold",
-  },
-  voiceBtn: {
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    marginRight: 6,
-  },
-  voiceIcon: {
-    fontSize: 18,
   },
   recordingRow: {
     flex: 1,

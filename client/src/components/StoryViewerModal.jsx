@@ -37,6 +37,14 @@ export default function StoryViewerModal() {
     }
   }, [currentStory?._id]);
 
+  useEffect(() => {
+    if (isOpen) {
+      document.querySelectorAll("video, audio").forEach((m) => {
+        if (!m.paused) m.pause();
+      });
+    }
+  }, [isOpen]);
+
   // Auto-advance timer (20 seconds per story like Instagram)
   useEffect(() => {
     if (!currentStory) return;
@@ -114,7 +122,7 @@ export default function StoryViewerModal() {
           <img
             src={currentStory.mediaUrl}
             alt="Story"
-            className="w-full h-full object-contain"
+            className="w-full h-full object-cover"
           />
 
           {/* Navigation Click Overlay */}

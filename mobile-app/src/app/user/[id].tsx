@@ -20,6 +20,7 @@ import { Ionicons, Feather } from "@expo/vector-icons";
 import api from "../../api";
 import PostCard from "../../components/PostCard";
 import VerifiedBadge from "../../components/VerifiedBadge";
+import UserListModal from "../../components/UserListModal";
 import { useMessageStore } from "../../messageStore";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -81,24 +82,60 @@ export default function UserProfileScreen() {
     }
   };
 
+  const [userModal, setUserModal] = useState<{ open: boolean; title: string; users: any[] }>({ open: false, title: "", users: [] });
+
   const handleToggleFollow = async () => {
     if (!profileData?._id) return;
     setFollowLoading(true);
+
+    const prevFollowing = Boolean(relationship?.isFollowing);
+    const prevRequested = Boolean(relationship?.requested);
+    const prevCount = relationship?.followersCount ?? (Array.isArray(profileData?.followers) ? profileData.followers.length : 0);
+
+    // Optimistic UI Update matching web app behavior
+    if (prevFollowing || prevRequested) {
+      setRelationship((prev: any) => ({
+        ...prev,
+        isFollowing: false,
+        requested: false,
+        followersCount: Math.max(0, prevCount - (prevFollowing ? 1 : 0)),
+      }));
+    } else if (profileData.isPrivate) {
+      setRelationship((prev: any) => ({
+        ...prev,
+        isFollowing: false,
+        requested: true,
+        followersCount: prevCount,
+      }));
+    } else {
+      setRelationship((prev: any) => ({
+        ...prev,
+        isFollowing: true,
+        requested: false,
+        followersCount: prevCount + 1,
+      }));
+    }
+
     try {
       const { data } = await api.post(`/users/${profileData._id}/follow`);
       setRelationship((prev: any) => ({
         ...prev,
-        isFollowing: data.following,
-        requested: data.requested,
+        isFollowing: Boolean(data.following),
+        requested: Boolean(data.requested),
         followersCount: data.followersCount,
       }));
       setProfileData((prev: any) => ({
         ...prev,
-        followers: {
-          length: data.followersCount,
-        },
+        followers: Array.isArray(prev?.followers) ? prev.followers : { length: data.followersCount },
       }));
     } catch (err) {
+      // Rollback state on error
+      setRelationship((prev: any) => ({
+        ...prev,
+        isFollowing: prevFollowing,
+        requested: prevRequested,
+        followersCount: prevCount,
+      }));
       Alert.alert("Error", "Could not update follow status.");
     } finally {
       setFollowLoading(false);
@@ -201,7 +238,7 @@ export default function UserProfileScreen() {
             >
               <View style={styles.avatarInnerContainer}>
                 {profileData?.avatarUrl ? (
-                  <Image source={{ uri: profileData.avatarUrl }} style={styles.avatarImg} />
+                  <Image source={{ uri: profileData.avatarUrl }} style={styles.avatarImg} resizeMode="cover" />
                 ) : (
                   <View style={styles.avatarFallback}>
                     <Text style={styles.avatarInitials}>
@@ -217,7 +254,7 @@ export default function UserProfileScreen() {
             <View style={styles.plainRing}>
               <View style={styles.avatarInnerContainer}>
                 {profileData?.avatarUrl ? (
-                  <Image source={{ uri: profileData.avatarUrl }} style={styles.avatarImg} />
+                  <Image source={{ uri: profileData.avatarUrl }} style={styles.avatarImg} resizeMode="cover" />
                 ) : (
                   <View style={styles.avatarFallback}>
                     <Text style={styles.avatarInitials}>
@@ -253,17 +290,39 @@ export default function UserProfileScreen() {
           <Text style={styles.statLabel}>POSTS</Text>
         </View>
         <View style={styles.statDivider} />
-        <View style={styles.statBox}>
+        <TouchableOpacity
+          style={styles.statBox}
+          onPress={() =>
+            setUserModal({
+              open: true,
+              title: "Followers",
+              users: Array.isArray(profileData?.followers) ? profileData.followers : [],
+            })
+          }
+          activeOpacity={0.7}
+        >
           <Text style={styles.statNumber}>
-            {relationship?.followersCount ?? profileData?.followers?.length ?? 0}
+            {relationship?.followersCount ?? (Array.isArray(profileData?.followers) ? profileData.followers.length : 0)}
           </Text>
           <Text style={styles.statLabel}>FOLLOWERS</Text>
-        </View>
+        </TouchableOpacity>
         <View style={styles.statDivider} />
-        <View style={styles.statBox}>
-          <Text style={styles.statNumber}>{profileData?.following?.length ?? 0}</Text>
+        <TouchableOpacity
+          style={styles.statBox}
+          onPress={() =>
+            setUserModal({
+              open: true,
+              title: "Following",
+              users: Array.isArray(profileData?.following) ? profileData.following : [],
+            })
+          }
+          activeOpacity={0.7}
+        >
+          <Text style={styles.statNumber}>
+            {Array.isArray(profileData?.following) ? profileData.following.length : 0}
+          </Text>
           <Text style={styles.statLabel}>FOLLOWING</Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* Action Buttons Row */}
@@ -282,7 +341,7 @@ export default function UserProfileScreen() {
                 <>
                   <Ionicons name="checkmark-circle" size={18} color="#EC4899" />
                   <Text style={styles.followingBtnText} numberOfLines={1} adjustsFontSizeToFit>
-                    Following
+                    Unfollow
                   </Text>
                 </>
               )}
@@ -417,7 +476,7 @@ export default function UserProfileScreen() {
                 onPress={() => setActiveTab("feed")}
               >
                 {mediaUri ? (
-                  <Image source={{ uri: mediaUri }} style={styles.gridThumbImage} />
+                  <Image source={{ uri: mediaUri }} style={styles.gridThumbImage} resizeMode="cover" />
                 ) : (
                   <View style={styles.gridThumbFallback}>
                     <Text style={styles.gridThumbText} numberOfLines={3}>
@@ -519,7 +578,7 @@ export default function UserProfileScreen() {
               <Image
                 source={{ uri: userStoryGroup.stories[activeStoryIdx].mediaUrl }}
                 style={{ width: "100%", height: "100%" }}
-                resizeMode="contain"
+                resizeMode="cover"
               />
               <TouchableOpacity
                 onPress={() => setShowStoryViewer(false)}
@@ -538,6 +597,14 @@ export default function UserProfileScreen() {
           )}
         </View>
       </Modal>
+
+      {/* User Followers/Following List Modal */}
+      <UserListModal
+        isOpen={userModal.open}
+        title={userModal.title}
+        users={userModal.users}
+        onClose={() => setUserModal({ open: false, title: "", users: [] })}
+      />
     </SafeAreaView>
   );
 }

@@ -6,27 +6,51 @@ import VerifiedBadge from "./VerifiedBadge";
 
 interface Props {
   user: any;
-  onFollowToggle?: () => void;
+  onFollowToggle?: (isFollowing?: boolean, requested?: boolean) => void;
 }
 
 export default function UserCard({ user, onFollowToggle }: Props) {
   const [following, setFollowing] = useState(Boolean(user.isFollowing));
+  const [requested, setRequested] = useState(Boolean(user.requested));
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setFollowing(Boolean(user.isFollowing));
-  }, [user.isFollowing, user._id, user.id]);
+    setRequested(Boolean(user.requested));
+  }, [user.isFollowing, user.requested, user._id, user.id]);
 
   const handleToggleFollow = async () => {
     const targetId = user._id || user.id;
     if (!targetId) return;
+
+    const prevFollowing = following;
+    const prevRequested = requested;
+
+    // Optimistic UI Update (matches Web logic)
+    if (prevFollowing || prevRequested) {
+      setFollowing(false);
+      setRequested(false);
+    } else if (user.isPrivate) {
+      setRequested(true);
+    } else {
+      setFollowing(true);
+    }
+
     setLoading(true);
     try {
       const { data } = await api.post(`/users/${targetId}/follow`);
-      setFollowing(Boolean(data.following));
-      if (onFollowToggle) onFollowToggle();
+      const newFollowing = Boolean(data.following);
+      const newRequested = Boolean(data.requested);
+      setFollowing(newFollowing);
+      setRequested(newRequested);
+      user.isFollowing = newFollowing;
+      user.requested = newRequested;
+      if (onFollowToggle) onFollowToggle(newFollowing, newRequested);
     } catch (err) {
       console.error("Follow error", err);
+      // Rollback to previous state on error
+      setFollowing(prevFollowing);
+      setRequested(prevRequested);
     } finally {
       setLoading(false);
     }
@@ -38,15 +62,34 @@ export default function UserCard({ user, onFollowToggle }: Props) {
     }
   };
 
+  const getButtonText = () => {
+    if (loading) return "...";
+    if (following) return "Unfollow";
+    if (requested) return "Requested";
+    return "Follow";
+  };
+
+  const getButtonStyle = () => {
+    if (following) return styles.btnOutline;
+    if (requested) return styles.btnRequested;
+    return styles.btnPrimary;
+  };
+
+  const getButtonTextStyle = () => {
+    if (following) return styles.btnOutlineText;
+    if (requested) return styles.btnRequestedText;
+    return styles.btnPrimaryText;
+  };
+
   return (
     <View style={styles.card}>
       <TouchableOpacity style={styles.leftRow} onPress={handlePress} activeOpacity={0.8}>
         {user.avatarUrl ? (
-          <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} />
+          <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} resizeMode="cover" />
         ) : (
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
-              {user.displayName?.[0] || user.username?.[0] || "U"}
+              {(user.displayName?.[0] || user.username?.[0] || "U").toUpperCase()}
             </Text>
           </View>
         )}
@@ -61,13 +104,13 @@ export default function UserCard({ user, onFollowToggle }: Props) {
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.btn, following ? styles.btnOutline : styles.btnPrimary]}
+        style={[styles.btn, getButtonStyle()]}
         onPress={handleToggleFollow}
         disabled={loading}
         activeOpacity={0.8}
       >
-        <Text style={[styles.btnText, following ? styles.btnOutlineText : styles.btnPrimaryText]}>
-          {loading ? "..." : following ? "Following" : "Follow"}
+        <Text style={[styles.btnText, getButtonTextStyle()]}>
+          {getButtonText()}
         </Text>
       </TouchableOpacity>
     </View>
@@ -127,14 +170,22 @@ const styles = StyleSheet.create({
   },
   btn: {
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: 16,
+    minWidth: 80,
+    alignItems: "center",
+    justifyContent: "center",
   },
   btnPrimary: {
     backgroundColor: "#6366f1",
   },
   btnOutline: {
     backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "#ef4444",
+  },
+  btnRequested: {
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
     borderWidth: 1,
     borderColor: "#475569",
   },
@@ -146,6 +197,9 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   btnOutlineText: {
+    color: "#ef4444",
+  },
+  btnRequestedText: {
     color: "#94a3b8",
   },
 });

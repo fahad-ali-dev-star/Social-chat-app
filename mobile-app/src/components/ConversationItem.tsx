@@ -43,7 +43,7 @@ export default function ConversationItem({ conversation }: Props) {
       {/* Avatar with Instagram-style gradient border effect */}
       <View style={styles.avatarBorder}>
         {recipient?.avatarUrl ? (
-          <Image source={{ uri: recipient.avatarUrl }} style={styles.avatarImage} />
+          <Image source={{ uri: recipient.avatarUrl }} style={styles.avatarImage} resizeMode="cover" />
         ) : (
           <View style={styles.avatarFallback}>
             <Text style={styles.avatarText}>

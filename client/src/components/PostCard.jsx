@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { usePostStore } from "../store/postStore";
 import { useMessageStore } from "../store/messageStore";
@@ -101,6 +101,55 @@ export default function PostCard({ post, myUserId }) {
   const [dmSent, setDmSent] = useState(null);
   const shareRef = useRef(null);
   const scrollRef = useRef(null);
+  const videoRef = useRef(null);
+  const location = useLocation();
+
+  // Stop video playback when navigating away, switching tabs, or unmounting
+  useEffect(() => {
+    const videoEl = videoRef.current;
+    if (!videoEl) return;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && videoEl) {
+        try { videoEl.pause(); } catch {}
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // Pause video when scrolled out of view
+    let observer;
+    if ("IntersectionObserver" in window) {
+      observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting && videoEl) {
+              try { videoEl.pause(); } catch {}
+            }
+          });
+        },
+        { threshold: 0.2 }
+      );
+      observer.observe(videoEl);
+    }
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (observer) observer.disconnect();
+      if (videoEl) {
+        try { videoEl.pause(); } catch {}
+      }
+    };
+  }, [location, post._id]);
+
+  const handleVideoPlay = (e) => {
+    const allMedia = document.querySelectorAll("video, audio");
+    allMedia.forEach((m) => {
+      if (m !== e.target && !m.paused) {
+        m.pause();
+      }
+    });
+  };
 
   const handleScroll = (e) => {
     const container = e.target;
@@ -170,7 +219,7 @@ export default function PostCard({ post, myUserId }) {
 
   const authUser = useAuthStore((s) => s.user);
   const currentUserId = String(myUserId || authUser?.id || authUser?._id || "");
-  const postAuthorId = String(post.author?._id || post.author || "");
+  const postAuthorId = typeof post.author === "string" ? post.author : String(post.author?._id || post.author?.id || "");
   const isBookmarked = bookmarkedIds.has(post._id);
   const isOwner = Boolean(currentUserId && postAuthorId && currentUserId === postAuthorId);
   const PREVIEW_LEN = 200;
@@ -255,48 +304,71 @@ export default function PostCard({ post, myUserId }) {
           </div>
         </Link>
 
-        {isOwner && (
-          <div className="relative">
-            <button
-              onClick={() => setMenuOpen((o) => !o)}
-              className="icon-btn text-gray-500 hover:text-white"
-              title="Post Options"
-            >
-              •••
-            </button>
-            {menuOpen && (
-              <div className="absolute right-0 mt-1 w-36 glass-lg rounded-xl overflow-hidden shadow-xl z-20 p-1 border border-white/10">
-                <button
-                  onClick={() => {
-                    setIsEditing(true);
-                    setMenuOpen(false);
-                  }}
-                  className="w-full text-left px-3 py-1.5 text-xs text-gray-200 hover:bg-white/10 rounded-lg transition-all"
-                >
-                  ✏️ Edit Post
-                </button>
-                <button
-                  onClick={() => {
-                    togglePinPost(post._id);
-                    setMenuOpen(false);
-                  }}
-                  className="w-full text-left px-3 py-1.5 text-xs text-gray-200 hover:bg-white/10 rounded-lg transition-all"
-                >
-                  📌 {post.isPinned ? "Unpin Post" : "Pin to Profile"}
-                </button>
-                <button
-                  onClick={() => {
-                    setMenuOpen(false);
-                    handleDelete();
-                  }}
-                  className="w-full text-left px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
-                >
-                  🗑️ Delete Post
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+        <div className="relative">
+          <button
+            onClick={() => setMenuOpen((o) => !o)}
+            className="icon-btn text-gray-500 hover:text-white"
+            title="Post Options"
+          >
+            •••
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 mt-1 w-36 glass-lg rounded-xl overflow-hidden shadow-xl z-20 p-1 border border-white/10">
+              {isOwner ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setIsEditing(true);
+                      setMenuOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-1.5 text-xs text-gray-200 hover:bg-white/10 rounded-lg transition-all flex items-center gap-2"
+                  >
+                    ✏️ Edit Post
+                  </button>
+                  <button
+                    onClick={() => {
+                      togglePinPost(post._id);
+                      setMenuOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-1.5 text-xs text-gray-200 hover:bg-white/10 rounded-lg transition-all flex items-center gap-2"
+                  >
+                    📌 {post.isPinned ? "Unpin Post" : "Pin to Profile"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      handleDelete();
+                    }}
+                    className="w-full text-left px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 rounded-lg transition-all flex items-center gap-2"
+                  >
+                    🗑️ Delete Post
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      handleCopyLink();
+                    }}
+                    className="w-full text-left px-3 py-1.5 text-xs text-gray-200 hover:bg-white/10 rounded-lg transition-all flex items-center gap-2"
+                  >
+                    🔗 Copy Link
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      toggleBookmark(post._id);
+                    }}
+                    className="w-full text-left px-3 py-1.5 text-xs text-gray-200 hover:bg-white/10 rounded-lg transition-all flex items-center gap-2"
+                  >
+                    📑 {isBookmarked ? "Remove Bookmark" : "Save Post"}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Content */}
@@ -372,8 +444,10 @@ export default function PostCard({ post, myUserId }) {
               {/* Media Element */}
               {isVideo ? (
                 <video
+                  ref={videoRef}
                   src={mediaList[0]}
                   controls
+                  onPlay={handleVideoPlay}
                   className={`w-full h-full transition-all duration-300 ${
                     viewFit === "cover" ? "object-cover" : "object-contain"
                   }`}
@@ -383,9 +457,7 @@ export default function PostCard({ post, myUserId }) {
                   src={mediaList[0]}
                   alt="Post media"
                   loading="lazy"
-                  className={`w-full h-full transition-all duration-300 ${
-                    viewFit === "cover" ? "object-cover" : "object-contain"
-                  }`}
+                  className="w-full h-full transition-all duration-300 object-cover"
                   onError={(e) => { e.target.style.display = "none"; }}
                 />
               ) : (
@@ -405,9 +477,7 @@ export default function PostCard({ post, myUserId }) {
                           src={url}
                           alt="Post media"
                           loading="lazy"
-                          className={`w-full h-full transition-all duration-300 ${
-                            viewFit === "cover" ? "object-cover" : "object-contain"
-                          }`}
+                          className="w-full h-full transition-all duration-300 object-cover"
                         />
                       </div>
                     ))}

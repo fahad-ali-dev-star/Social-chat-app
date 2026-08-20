@@ -50,13 +50,17 @@ export default function CreatePostModal({ visible, onClose }: Props) {
 
     setUploading(true);
     let uploadedMediaUrl = "";
+    let mediaType = "image";
 
     try {
       if (selectedImage) {
         const formData = new FormData();
-        const filename = selectedImage.split("/").pop() || "photo.jpg";
+        const filename = selectedImage.split("/").pop() || "media.jpg";
         const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : `image/jpeg`;
+        const ext = match ? match[1].toLowerCase() : "";
+        const isVideo = ["mp4", "mov", "webm", "m4v", "ogg", "3gp"].includes(ext) || selectedImage.toLowerCase().includes("video");
+        mediaType = isVideo ? "video" : "image";
+        const type = isVideo ? `video/${ext || "mp4"}` : `image/${ext || "jpeg"}`;
 
         formData.append("file", {
           uri: selectedImage,
@@ -74,7 +78,7 @@ export default function CreatePostModal({ visible, onClose }: Props) {
         content.trim(),
         uploadedMediaUrl,
         uploadedMediaUrl ? [uploadedMediaUrl] : [],
-        "image"
+        mediaType
       );
 
       setContent("");
@@ -128,7 +132,7 @@ export default function CreatePostModal({ visible, onClose }: Props) {
           {/* Media Preview */}
           {selectedImage && (
             <View style={styles.imagePreviewContainer}>
-              <Image source={{ uri: selectedImage }} style={styles.imagePreview} />
+              <Image source={{ uri: selectedImage }} style={styles.imagePreview} resizeMode="cover" />
               <TouchableOpacity
                 style={styles.removeImageBtn}
                 onPress={() => setSelectedImage(null)}

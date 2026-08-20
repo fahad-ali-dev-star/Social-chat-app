@@ -12,6 +12,61 @@ const SearchIcon = () => (
   </svg>
 );
 
+function SearchUserCard({ user, currentUserId }) {
+  const [following, setFollowing] = useState(Boolean(user.isFollowing));
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setFollowing(Boolean(user.isFollowing));
+  }, [user.isFollowing, user._id]);
+
+  const handleToggleFollow = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setLoading(true);
+    try {
+      const { data } = await api.post(`/users/${user._id}/follow`);
+      setFollowing(Boolean(data.following));
+    } catch (err) {
+      console.error("Follow error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isOwn = currentUserId === user._id;
+
+  return (
+    <div className="glass rounded-2xl p-4 flex items-center justify-between gap-4 hover:border-white/10 transition-all duration-200">
+      <Link to={`/profile/${user.username}`} className="flex items-center gap-4 flex-1 min-w-0 group">
+        <Avatar src={user.avatarUrl} name={user.displayName} username={user.username} size="lg" />
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-white group-hover:text-brand-400 transition-colors flex items-center gap-1">
+            {user.displayName || user.username}
+            {user.isVerified && <VerifiedBadge size="xs" />}
+          </p>
+          <p className="text-sm text-gray-500">@{user.username}</p>
+          {user.bio && <p className="text-xs text-gray-400 mt-1 truncate">{user.bio}</p>}
+        </div>
+      </Link>
+
+      {!isOwn && (
+        <button
+          onClick={handleToggleFollow}
+          disabled={loading}
+          className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all flex-shrink-0 ${
+            following
+              ? "bg-white/10 text-gray-200 hover:bg-red-500/20 hover:text-red-400 border border-white/10"
+              : "btn-brand"
+          }`}
+        >
+          {loading ? "..." : following ? "Following" : "Follow"}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -26,18 +81,12 @@ export default function Search() {
   const [searched, setSearched] = useState(false);
 
   const doSearch = useCallback(async (q) => {
-    if (!q.trim()) {
-      setUsers([]);
-      setPosts([]);
-      setSearched(false);
-      return;
-    }
     setLoading(true);
     setSearched(true);
     try {
       const [usersRes, postsRes] = await Promise.all([
         api.get(`/users/search?q=${encodeURIComponent(q)}`),
-        api.get(`/posts/search?q=${encodeURIComponent(q)}`),
+        q.trim() ? api.get(`/posts/search?q=${encodeURIComponent(q)}`) : Promise.resolve({ data: { posts: [] } }),
       ]);
       setUsers(usersRes.data.users || []);
       setPosts(postsRes.data.posts || []);
@@ -48,7 +97,7 @@ export default function Search() {
     }
   }, []);
 
-  // Run search when URL q param changes
+  // Run search when URL q param changes (or on first load with no query)
   useEffect(() => {
     const q = searchParams.get("q") || "";
     setQuery(q);
@@ -123,26 +172,21 @@ export default function Search() {
           {/* People tab */}
           {activeTab === "people" && (
             <div className="space-y-3">
+              {users.length > 0 && (
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest px-1">
+                  Suggestions
+                </p>
+              )}
               {users.length === 0 ? (
                 <div className="glass rounded-2xl p-10 text-center">
-                  <div className="text-3xl mb-2">🔍</div>
-                  <p className="text-gray-500 text-sm">No users found for "{searchParams.get("q")}"</p>
+                  <div className="text-3xl mb-2">👥</div>
+                  <p className="text-gray-500 text-sm">
+                    {query.trim() ? `No users found for "${query}"` : "No users found"}
+                  </p>
                 </div>
               ) : (
                 users.map((u) => (
-                  <Link
-                    key={u._id}
-                    to={`/profile/${u.username}`}
-                    className="glass rounded-2xl p-4 flex items-center gap-4 hover:border-white/10 transition-all duration-200 block"
-                  >
-                    <Avatar src={u.avatarUrl} name={u.displayName} username={u.username} size="lg" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-white">{u.displayName || u.username}{u.isVerified && <VerifiedBadge size="xs" />}</p>
-                      <p className="text-sm text-gray-500">@{u.username}</p>
-                      {u.bio && <p className="text-xs text-gray-400 mt-1 truncate">{u.bio}</p>}
-                    </div>
-                    <span className="text-xs text-brand-400 font-medium flex-shrink-0">View →</span>
-                  </Link>
+                  <SearchUserCard key={u._id} user={u} currentUserId={currentUser?.id} />
                 ))
               )}
             </div>
@@ -154,7 +198,9 @@ export default function Search() {
               {posts.length === 0 ? (
                 <div className="glass rounded-2xl p-10 text-center">
                   <div className="text-3xl mb-2">📝</div>
-                  <p className="text-gray-500 text-sm">No posts found for "{searchParams.get("q")}"</p>
+                  <p className="text-gray-500 text-sm">
+                    {query.trim() ? `No posts found for "${query}"` : "Search for posts above"}
+                  </p>
                 </div>
               ) : (
                 posts.map((post) => (
@@ -164,15 +210,6 @@ export default function Search() {
             </div>
           )}
         </>
-      )}
-
-      {/* Empty state before search */}
-      {!loading && !searched && (
-        <div className="glass rounded-2xl p-14 text-center">
-          <div className="text-5xl mb-4">🔍</div>
-          <p className="text-gray-400 font-medium">Start searching</p>
-          <p className="text-gray-600 text-sm mt-1">Find people or posts on Nexus</p>
-        </div>
       )}
     </div>
   );

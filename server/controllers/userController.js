@@ -87,24 +87,20 @@ export const getSuggestions = async (req, res) => {
   try {
     const currentUser = await User.findById(req.userId).select("following blockedUsers blockedBy");
     const blockedIds = [...(currentUser?.blockedUsers || []), ...(currentUser?.blockedBy || [])];
-    const followingSet = new Set((currentUser?.following || []).map((id) => String(id._id || id)));
-    const exclude = [...(currentUser?.following || []), req.userId, ...blockedIds];
+    const followingSet = new Set((currentUser?.following || []).map((id) => id.toString()));
+    const exclude = [...(currentUser?.following || []).map((id) => id.toString()), req.userId, ...blockedIds.map((id) => id.toString())];
 
     const suggestions = await User.find({
       _id: { $nin: exclude },
       accountStatus: "active",
     })
-      .select("username displayName avatarUrl followers isPrivate isVerified")
+      .select("username displayName avatarUrl isPrivate isVerified")
       .limit(6);
 
-    const serialized = suggestions.map((u) => {
-      const uIdStr = String(u._id);
-      const isFollowing = followingSet.has(uIdStr) || (Array.isArray(u.followers) && u.followers.some((f) => String(f._id || f) === String(req.userId)));
-      return {
-        ...u.toObject(),
-        isFollowing,
-      };
-    });
+    const serialized = suggestions.map((u) => ({
+      ...u.toObject(),
+      isFollowing: followingSet.has(u._id.toString()),
+    }));
 
     res.json({ suggestions: serialized });
   } catch (err) {
@@ -156,29 +152,48 @@ export const getUserPosts = async (req, res) => {
 export const searchUsers = async (req, res) => {
   try {
     const q = req.query.q || "";
-    if (!q.trim()) return res.json({ users: [] });
-
-    const regex = new RegExp(escapeRegex(sanitizeQueryText(q, 80)), "i");
     const currentUser = await User.findById(req.userId).select("following blockedUsers blockedBy");
     const blockedIds = [...(currentUser?.blockedUsers || []), ...(currentUser?.blockedBy || [])];
-    const followingSet = new Set((currentUser?.following || []).map((id) => String(id._id || id)));
 
-    const users = await User.find({
-      accountStatus: "active",
-      _id: { $nin: [req.userId, ...blockedIds] },
-      $or: [{ username: regex }, { displayName: regex }],
-    })
-      .select("username displayName avatarUrl bio isPrivate isVerified followers")
-      .limit(20);
+    // Build a Set of IDs the current user is following (canonical source of truth)
+    const followingSet = new Set((currentUser?.following || []).map((id) => id.toString()));
+    const followingIds = [...followingSet];
 
-    const serialized = users.map((u) => {
-      const uIdStr = String(u._id);
-      const isFollowing = followingSet.has(uIdStr) || (Array.isArray(u.followers) && u.followers.some((f) => String(f._id || f) === String(req.userId)));
-      return {
-        ...u.toObject(),
-        isFollowing,
-      };
-    });
+    let users;
+
+    if (!q.trim()) {
+      // No query: return following friends first, then newer users
+      const friends = await User.find({
+        accountStatus: "active",
+        _id: { $in: followingIds },
+      })
+        .select("username displayName avatarUrl bio isPrivate isVerified")
+        .limit(30);
+
+      const others = await User.find({
+        accountStatus: "active",
+        _id: { $nin: [req.userId, ...blockedIds, ...followingIds] },
+      })
+        .select("username displayName avatarUrl bio isPrivate isVerified")
+        .sort({ createdAt: -1 })
+        .limit(30);
+
+      users = [...friends, ...others];
+    } else {
+      const regex = new RegExp(escapeRegex(sanitizeQueryText(q, 80)), "i");
+      users = await User.find({
+        accountStatus: "active",
+        _id: { $nin: [req.userId, ...blockedIds] },
+        $or: [{ username: regex }, { displayName: regex }],
+      })
+        .select("username displayName avatarUrl bio isPrivate isVerified")
+        .limit(20);
+    }
+
+    const serialized = users.map((u) => ({
+      ...u.toObject(),
+      isFollowing: followingSet.has(u._id.toString()),
+    }));
 
     res.json({ users: serialized });
   } catch (err) {

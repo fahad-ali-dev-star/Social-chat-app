@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet, useLocation } from "react-router-dom";
 import { io } from "socket.io-client";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Navbar from "./components/Navbar";
@@ -35,6 +35,18 @@ function PageSkeleton() {
 
 // Layout wrapping authenticated pages
 function AppLayout() {
+  const location = useLocation();
+
+  useEffect(() => {
+    // Stop any video or audio playing when navigating to another section or profile
+    const mediaElements = document.querySelectorAll("video, audio");
+    mediaElements.forEach((el) => {
+      try {
+        el.pause();
+      } catch {}
+    });
+  }, [location]);
+
   return (
     <div className="min-h-screen overflow-x-hidden">
       <Navbar />
