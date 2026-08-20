@@ -1,10 +1,12 @@
 import React, { Component, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useColorScheme } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useColorScheme, LogBox } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import * as SplashScreen from 'expo-splash-screen';
 import { Stack } from 'expo-router';
 import { initSocket } from '../socketStore';
 import { useAuthStore } from '../authStore';
+
+LogBox.ignoreLogs(['Video component from `expo-av` is deprecated', 'Video component from expo-av is deprecated']);
 
 try {
   SplashScreen.preventAutoHideAsync().catch(() => {});

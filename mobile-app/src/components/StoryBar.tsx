@@ -396,7 +396,7 @@ export default function StoryBar() {
                 <Image
                   source={{ uri: currentStory.mediaUrl }}
                   style={styles.fullMedia}
-                  resizeMode="contain"
+                  resizeMode="cover"
                 />
               )}
 

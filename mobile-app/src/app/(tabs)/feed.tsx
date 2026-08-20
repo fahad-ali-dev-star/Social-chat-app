@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import { useIsFocused } from "@react-navigation/native";
 import {
   StyleSheet,
   View,
@@ -8,6 +9,7 @@ import {
   RefreshControl,
   TouchableOpacity,
   Text,
+  Platform,
 } from "react-native";
 import MobileHeader from "../../components/MobileHeader";
 import StoryBar from "../../components/StoryBar";
@@ -16,6 +18,7 @@ import CreatePostModal from "../../components/CreatePostModal";
 import { usePostStore } from "../../postStore";
 
 export default function FeedScreen() {
+  const isFocused = useIsFocused();
   const { posts, loading, hasMore, loadFeed } = usePostStore();
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
@@ -31,6 +34,15 @@ export default function FeedScreen() {
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 60,
   }).current;
+
+  const keyExtractor = useCallback((item: any) => item._id || String(item.id), []);
+
+  const renderItem = useCallback(
+    ({ item }: { item: any }) => (
+      <PostCard post={item} isVisible={isFocused && item._id === visiblePostId} />
+    ),
+    [isFocused, visiblePostId]
+  );
 
   useEffect(() => {
     loadFeed(true, activeTab);
@@ -57,7 +69,12 @@ export default function FeedScreen() {
       ) : (
         <FlatList
           data={posts}
-          keyExtractor={(item) => item._id}
+          keyExtractor={keyExtractor}
+          renderItem={renderItem}
+          initialNumToRender={4}
+          maxToRenderPerBatch={4}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === "android"}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#6366f1" />
           }
@@ -89,7 +106,6 @@ export default function FeedScreen() {
           }
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
-          renderItem={({ item }) => <PostCard post={item} isVisible={item._id === visiblePostId} />}
           onEndReached={() => {
             if (!loading && hasMore) loadFeed(false, activeTab);
           }}

@@ -10,8 +10,8 @@ import {
   Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { router } from "expo-router";
 import api from "../../api";
-
 import { useNotificationStore } from "../../notificationStore";
 
 export default function NotificationsScreen() {
@@ -19,6 +19,7 @@ export default function NotificationsScreen() {
   const paddingTop = Math.max(insets.top, 12);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const markNotificationsRead = useNotificationStore((s) => s.markNotificationsRead);
 
   useEffect(() => {
@@ -39,6 +40,23 @@ export default function NotificationsScreen() {
     }
   };
 
+  const handleRespondFollowRequest = async (
+    senderId: string,
+    action: "accept" | "reject",
+    notifId: string
+  ) => {
+    if (!senderId) return;
+    setActionLoadingId(notifId);
+    try {
+      await api.post(`/users/${senderId}/follow-request`, { action });
+      setNotifications((prev) => prev.filter((n) => n._id !== notifId));
+    } catch (err) {
+      console.error("Follow request response error", err);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
   const getNotifText = (notif: any) => {
     const name = notif.sender?.displayName || notif.sender?.username || "Someone";
     switch (notif.type) {
@@ -50,10 +68,18 @@ export default function NotificationsScreen() {
         return `${name} replied to your comment 💬`;
       case "follow":
         return `${name} started following you 👤`;
+      case "follow_request":
+        return `${name} requested to follow you 👤`;
       case "mention":
         return `${name} mentioned you 📢`;
       default:
         return `New notification from ${name}`;
+    }
+  };
+
+  const handleUserPress = (username?: string) => {
+    if (username) {
+      router.push(`/user/${username}` as any);
     }
   };
 
@@ -77,26 +103,77 @@ export default function NotificationsScreen() {
           data={notifications}
           keyExtractor={(item) => item._id}
           contentContainerStyle={{ padding: 16 }}
-          renderItem={({ item }) => (
-            <View style={[styles.card, !item.read && styles.unreadCard]}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {item.sender?.displayName?.[0] || item.sender?.username?.[0] || "U"}
-                </Text>
+          renderItem={({ item }) => {
+            const isFollowRequest = item.type === "follow_request";
+            const senderId = item.sender?._id || item.sender?.id;
+
+            return (
+              <View style={[styles.card, !item.read && styles.unreadCard]}>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => handleUserPress(item.sender?.username)}
+                >
+                  {item.sender?.avatarUrl ? (
+                    <Image
+                      source={{ uri: item.sender.avatarUrl }}
+                      style={styles.avatarImage}
+                    />
+                  ) : (
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>
+                        {(
+                          item.sender?.displayName?.[0] ||
+                          item.sender?.username?.[0] ||
+                          "U"
+                        ).toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.notifText}>{getNotifText(item)}</Text>
+                  <Text style={styles.timeText}>
+                    {new Date(item.createdAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </Text>
+
+                  {/* Accept / Reject buttons for follow_request */}
+                  {isFollowRequest && (
+                    <View style={styles.requestActions}>
+                      <TouchableOpacity
+                        style={[styles.btn, styles.acceptBtn]}
+                        disabled={actionLoadingId === item._id}
+                        onPress={() =>
+                          handleRespondFollowRequest(senderId, "accept", item._id)
+                        }
+                      >
+                        {actionLoadingId === item._id ? (
+                          <ActivityIndicator color="#fff" size="small" />
+                        ) : (
+                          <Text style={styles.acceptBtnText}>Confirm</Text>
+                        )}
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[styles.btn, styles.rejectBtn]}
+                        disabled={actionLoadingId === item._id}
+                        onPress={() =>
+                          handleRespondFollowRequest(senderId, "reject", item._id)
+                        }
+                      >
+                        <Text style={styles.rejectBtnText}>Delete</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.notifText}>{getNotifText(item)}</Text>
-                <Text style={styles.timeText}>
-                  {new Date(item.createdAt).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </Text>
-              </View>
-            </View>
-          )}
+            );
+          }}
         />
       )}
     </SafeAreaView>
@@ -133,7 +210,7 @@ const styles = StyleSheet.create({
   },
   card: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     backgroundColor: "#1e293b",
     padding: 14,
     borderRadius: 14,
@@ -152,6 +229,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  avatarImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
   avatarText: {
     color: "#fff",
     fontWeight: "bold",
@@ -166,5 +248,35 @@ const styles = StyleSheet.create({
     color: "#64748b",
     fontSize: 11,
     marginTop: 4,
+  },
+  requestActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 10,
+  },
+  btn: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  acceptBtn: {
+    backgroundColor: "#6366f1",
+  },
+  acceptBtnText: {
+    color: "#ffffff",
+    fontWeight: "bold",
+    fontSize: 13,
+  },
+  rejectBtn: {
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    borderWidth: 1,
+    borderColor: "#475569",
+  },
+  rejectBtnText: {
+    color: "#94a3b8",
+    fontWeight: "600",
+    fontSize: 13,
   },
 });

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuthStore } from "../store/authStore";
 import { usePostStore } from "../store/postStore";
 import Avatar from "./Avatar";
@@ -30,10 +30,19 @@ export default function CreatePostBox() {
   const [focused, setFocused] = useState(false);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
+  const videoRef = useRef(null);
 
   // Custom media fit and carousel preview state
   const [mediaFit, setMediaFit] = useState("cover");
   const [activePreviewIdx, setActivePreviewIdx] = useState(0);
+
+  useEffect(() => {
+    return () => {
+      if (videoRef.current && !videoRef.current.paused) {
+        videoRef.current.pause();
+      }
+    };
+  }, []);
 
   const remaining = MAX_CHARS - content.length;
   const canPost = (content.trim().length > 0 || mediaUrls.length > 0) && remaining >= 0 && !uploading;
@@ -138,6 +147,7 @@ export default function CreatePostBox() {
                 <div className="relative w-full h-[280px] sm:h-[360px] bg-black/40 rounded-xl overflow-hidden border border-white/10 flex items-center justify-center group/preview">
                   {mediaType === "video" ? (
                     <video
+                      ref={videoRef}
                       src={mediaUrls[activePreviewIdx || 0]}
                       controls
                       className={`w-full h-full ${
@@ -148,9 +158,7 @@ export default function CreatePostBox() {
                     <img
                       src={mediaUrls[activePreviewIdx || 0]}
                       alt="Preview"
-                      className={`w-full h-full ${
-                        mediaFit === "cover" ? "object-cover" : "object-contain"
-                      }`}
+                      className="w-full h-full object-cover"
                     />
                   )}
 

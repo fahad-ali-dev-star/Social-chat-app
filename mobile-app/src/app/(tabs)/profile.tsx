@@ -28,6 +28,7 @@ import { useAuthStore } from "../../authStore";
 import { useSavedVideosStore } from "../../savedVideosStore";
 import PostCard from "../../components/PostCard";
 import VerifiedBadge from "../../components/VerifiedBadge";
+import UserListModal from "../../components/UserListModal";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const GRID_ITEM_SIZE = (SCREEN_WIDTH - 40) / 3;
@@ -40,6 +41,7 @@ export default function ProfileScreen() {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"grid" | "feed" | "saved">("grid");
+  const [userModal, setUserModal] = useState<{ open: boolean; title: string; users: any[] }>({ open: false, title: "", users: [] });
 
   // Edit Modal State
   const [editVisible, setEditVisible] = useState(false);
@@ -238,7 +240,7 @@ export default function ProfileScreen() {
             >
               <View style={styles.avatarInnerContainer}>
                 {profileData?.avatarUrl ? (
-                  <Image source={{ uri: profileData.avatarUrl }} style={styles.avatarImg} />
+                  <Image source={{ uri: profileData.avatarUrl }} style={styles.avatarImg} resizeMode="cover" />
                 ) : (
                   <View style={styles.avatarFallback}>
                     <Text style={styles.avatarInitials}>
@@ -254,7 +256,7 @@ export default function ProfileScreen() {
             <View style={styles.plainRing}>
               <View style={styles.avatarInnerContainer}>
                 {profileData?.avatarUrl ? (
-                  <Image source={{ uri: profileData.avatarUrl }} style={styles.avatarImg} />
+                  <Image source={{ uri: profileData.avatarUrl }} style={styles.avatarImg} resizeMode="cover" />
                 ) : (
                   <View style={styles.avatarFallback}>
                     <Text style={styles.avatarInitials}>
@@ -288,15 +290,35 @@ export default function ProfileScreen() {
           <Text style={styles.statLabel}>POSTS</Text>
         </View>
         <View style={styles.statDivider} />
-        <View style={styles.statBox}>
+        <TouchableOpacity
+          style={styles.statBox}
+          onPress={() =>
+            setUserModal({
+              open: true,
+              title: "Followers",
+              users: Array.isArray(profileData?.followers) ? profileData.followers : [],
+            })
+          }
+          activeOpacity={0.7}
+        >
           <Text style={styles.statNumber}>{profileData?.followers?.length || 0}</Text>
           <Text style={styles.statLabel}>FOLLOWERS</Text>
-        </View>
+        </TouchableOpacity>
         <View style={styles.statDivider} />
-        <View style={styles.statBox}>
+        <TouchableOpacity
+          style={styles.statBox}
+          onPress={() =>
+            setUserModal({
+              open: true,
+              title: "Following",
+              users: Array.isArray(profileData?.following) ? profileData.following : [],
+            })
+          }
+          activeOpacity={0.7}
+        >
           <Text style={styles.statNumber}>{profileData?.following?.length || 0}</Text>
           <Text style={styles.statLabel}>FOLLOWING</Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* Action Buttons Row */}
@@ -408,7 +430,7 @@ export default function ProfileScreen() {
                 onPress={() => setActiveTab("feed")}
               >
                 {mediaUri ? (
-                  <Image source={{ uri: mediaUri }} style={styles.gridThumbImage} />
+                  <Image source={{ uri: mediaUri }} style={styles.gridThumbImage} resizeMode="cover" />
                 ) : (
                   <View style={styles.gridThumbFallback}>
                     <Text style={styles.gridThumbText} numberOfLines={3}>
@@ -444,7 +466,7 @@ export default function ProfileScreen() {
                 onPress={() => setSelectedVideo(item)}
               >
                 {mediaUri ? (
-                  <Image source={{ uri: mediaUri }} style={styles.gridThumbImage} />
+                  <Image source={{ uri: mediaUri }} style={styles.gridThumbImage} resizeMode="cover" />
                 ) : (
                   <View style={styles.gridThumbFallback}>
                     <Text style={styles.gridThumbText} numberOfLines={2}>
@@ -507,7 +529,7 @@ export default function ProfileScreen() {
             <Text style={styles.label}>Profile Photo</Text>
             <View style={styles.uploadRow}>
               {avatarUrl ? (
-                <Image source={{ uri: avatarUrl }} style={styles.previewAvatar} />
+                <Image source={{ uri: avatarUrl }} style={styles.previewAvatar} resizeMode="cover" />
               ) : (
                 <View style={[styles.previewAvatar, styles.avatarFallback]}>
                   <Text style={{ color: "#fff", fontWeight: "bold" }}>U</Text>
@@ -530,7 +552,7 @@ export default function ProfileScreen() {
             <Text style={styles.label}>Cover Banner</Text>
             <View style={styles.uploadRow}>
               {bannerUrl ? (
-                <Image source={{ uri: bannerUrl }} style={styles.previewBanner} />
+                <Image source={{ uri: bannerUrl }} style={styles.previewBanner} resizeMode="cover" />
               ) : (
                 <View style={[styles.previewBanner, { backgroundColor: "#1E293B", justifyContent: "center", alignItems: "center" }]}>
                   <Text style={{ color: "#94A3B8", fontSize: 12 }}>No Banner</Text>
@@ -731,7 +753,7 @@ export default function ProfileScreen() {
               <Image
                 source={{ uri: userStoryGroup.stories[activeStoryIdx].mediaUrl }}
                 style={{ width: "100%", height: "100%" }}
-                resizeMode="contain"
+                resizeMode="cover"
               />
               <TouchableOpacity
                 onPress={() => setShowStoryViewer(false)}
@@ -750,6 +772,14 @@ export default function ProfileScreen() {
           )}
         </View>
       </Modal>
+
+      {/* Followers / Following List Modal */}
+      <UserListModal
+        isOpen={userModal.open}
+        title={userModal.title}
+        users={userModal.users}
+        onClose={() => setUserModal({ open: false, title: "", users: [] })}
+      />
     </SafeAreaView>
   );
 }

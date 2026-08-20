@@ -1,9 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Avatar from "./Avatar";
 import VerifiedBadge from "./VerifiedBadge";
 
 export default function UserListModal({ title, users, isOpen, onClose }) {
+  useEffect(() => {
+    if (isOpen) {
+      document.querySelectorAll("video, audio").forEach((m) => {
+        if (!m.paused) m.pause();
+      });
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (

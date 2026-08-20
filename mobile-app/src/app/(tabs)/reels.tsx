@@ -23,6 +23,7 @@ import { useSavedVideosStore } from "../../savedVideosStore";
 import CommentModal from "../../components/CommentModal";
 import VerifiedBadge from "../../components/VerifiedBadge";
 import CreatePostModal from "../../components/CreatePostModal";
+import ShareReelModal from "../../components/ShareReelModal";
 
 const { width: WINDOW_WIDTH, height: WINDOW_HEIGHT } = Dimensions.get("window");
 
@@ -76,15 +77,17 @@ interface ReelItemProps {
   item: any;
   isActive: boolean;
   itemHeight: number;
+  onSharePress: (item: any) => void;
 }
 
-function ReelItem({ item, isActive, itemHeight }: ReelItemProps) {
+function ReelItem({ item, isActive, itemHeight, onSharePress }: ReelItemProps) {
   const [commentVisible, setCommentVisible] = useState(false);
   const [showHeart, setShowHeart] = useState(false);
   const [paused, setPaused] = useState(false);
+  const videoRef = useRef<Video>(null);
   const heartAnim = useRef(new Animated.Value(0)).current;
   const lastTapRef = useRef<number>(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const toggleLike = usePostStore((s) => s.toggleLike);
   const isLiked = Boolean(item._liked);
@@ -92,6 +95,11 @@ function ReelItem({ item, isActive, itemHeight }: ReelItemProps) {
   const saved = isSaved(item._id);
 
   useEffect(() => {
+    if (!isActive || paused) {
+      if (videoRef.current) {
+        videoRef.current.pauseAsync().catch(() => {});
+      }
+    }
     if (!isActive) {
       setPaused(false);
     }
@@ -100,7 +108,7 @@ function ReelItem({ item, isActive, itemHeight }: ReelItemProps) {
         clearTimeout(timerRef.current);
       }
     };
-  }, [isActive]);
+  }, [isActive, paused]);
 
   const triggerHeartAnim = () => {
     heartAnim.setValue(0);
@@ -125,7 +133,6 @@ function ReelItem({ item, isActive, itemHeight }: ReelItemProps) {
     const DOUBLE_TAP_DELAY = 300;
 
     if (lastTapRef.current && now - lastTapRef.current < DOUBLE_TAP_DELAY) {
-      // Double tap detected: cancel single tap pause and trigger like
       if (timerRef.current) {
         clearTimeout(timerRef.current);
         timerRef.current = null;
@@ -136,7 +143,6 @@ function ReelItem({ item, isActive, itemHeight }: ReelItemProps) {
         toggleLike(item._id);
       }
     } else {
-      // Single tap candidate: set timer to toggle play/pause after delay
       lastTapRef.current = now;
       if (timerRef.current) {
         clearTimeout(timerRef.current);
@@ -149,12 +155,8 @@ function ReelItem({ item, isActive, itemHeight }: ReelItemProps) {
     }
   };
 
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message: `Watch this Reel by @${item.author?.username} on Buzz Chat! 🎥\n"${item.content || ""}"`,
-      });
-    } catch (e) {}
+  const handleShare = () => {
+    onSharePress(item);
   };
 
   return (
@@ -166,6 +168,7 @@ function ReelItem({ item, isActive, itemHeight }: ReelItemProps) {
         style={StyleSheet.absoluteFill}
       >
         <Video
+          ref={videoRef}
           source={{ uri: item.mediaUrl }}
           style={styles.videoPlayer}
           resizeMode={ResizeMode.COVER}
@@ -322,6 +325,8 @@ export default function ReelsScreen() {
   const [loading, setLoading] = useState(true);
   const [activeIdx, setActiveIdx] = useState(0);
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [selectedReel, setSelectedReel] = useState<any>(null);
 
   const loadSaved = useSavedVideosStore((s) => s.loadSaved);
 
@@ -394,6 +399,10 @@ export default function ReelsScreen() {
               item={item}
               isActive={isFocused && index === activeIdx}
               itemHeight={reelHeight}
+              onSharePress={(r) => {
+                setSelectedReel(r);
+                setShareModalVisible(true);
+              }}
             />
           )}
         />
@@ -406,6 +415,13 @@ export default function ReelsScreen() {
           setCreateModalVisible(false);
           fetchReels();
         }}
+      />
+
+      {/* Share Reel Modal */}
+      <ShareReelModal
+        visible={shareModalVisible}
+        reel={selectedReel}
+        onClose={() => setShareModalVisible(false)}
       />
     </View>
   );

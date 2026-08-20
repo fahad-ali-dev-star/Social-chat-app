@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -13,18 +13,26 @@ import {
   NativeScrollEvent,
   Animated,
   Share,
+  TextInput,
+  ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import { Video, ResizeMode } from "expo-av";
+import { Ionicons } from "@expo/vector-icons";
 import { usePostStore } from "../postStore";
 import { useAuthStore } from "../authStore";
+import { resolveMediaUrl } from "../config";
 import CommentModal from "./CommentModal";
 import ReportModal from "./ReportModal";
 import VerifiedBadge from "./VerifiedBadge";
+import ShareReelModal from "./ShareReelModal";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const CARD_PADDING = 32; // marginHorizontal 16 * 2
 const MEDIA_WIDTH = SCREEN_WIDTH - CARD_PADDING;
+// 4:3 ratio for responsive image height
+const MEDIA_HEIGHT = Math.round(MEDIA_WIDTH * 0.75);
 
 interface Props {
   post: any;
@@ -32,40 +40,81 @@ interface Props {
 }
 
 function isVideoUrl(url: string): boolean {
-  return /\.(mp4|webm|mov|ogg|m4v)(\?.*)?$/i.test(url);
+  if (!url) return false;
+  return /\.(mp4|webm|mov|ogg|m4v|3gp)(\?.*)?$/i.test(url) || /\/video\//i.test(url);
 }
 
-export default function PostCard({ post, isVisible = false }: Props) {
+function PostCard({ post, isVisible = false }: Props) {
+  const isFocused = useIsFocused();
   const [commentModalVisible, setCommentModalVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [mediaModalVisible, setMediaModalVisible] = useState(false);
+  const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [editContent, setEditContent] = useState(post.content || "");
+  const [savingEdit, setSavingEdit] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
   const [fullscreenIdx, setFullscreenIdx] = useState(0);
   const [showFloatingHeart, setShowFloatingHeart] = useState(false);
 
   const scrollRef = useRef<ScrollView>(null);
   const fullscreenScrollRef = useRef<ScrollView>(null);
+  const videoRef = useRef<Video>(null);
   const lastTapRef = useRef<number>(0);
   const heartAnim = useRef(new Animated.Value(0)).current;
+
+  const shouldPlayVideo = isVisible && isFocused && !commentModalVisible && !reportModalVisible && !mediaModalVisible && !optionsModalVisible && !editModalVisible;
+
+  useEffect(() => {
+    if (!shouldPlayVideo && videoRef.current) {
+      videoRef.current.pauseAsync().catch(() => {});
+    }
+  }, [shouldPlayVideo]);
 
   const toggleLike = usePostStore((s) => s.toggleLike);
   const toggleBookmark = usePostStore((s) => s.toggleBookmark);
   const deletePost = usePostStore((s) => s.deletePost);
+  const updatePost = usePostStore((s) => s.updatePost);
   const bookmarkedIds = usePostStore((s) => s.bookmarkedIds);
   const currentUser = useAuthStore((s) => s.user);
 
+  const handleSaveEdit = async () => {
+    if (!editContent.trim()) {
+      Alert.alert("Error", "Post content cannot be empty.");
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      await updatePost(post._id, editContent.trim());
+      setEditModalVisible(false);
+    } catch (err) {
+      Alert.alert("Error", "Failed to update post.");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const isLiked = Boolean(post._liked);
   const isBookmarked = bookmarkedIds.has(post._id);
-  const isOwnPost =
-    String(post.author?._id || post.author?.id) === String(currentUser?.id);
+  const currentUserId = String(currentUser?._id || currentUser?.id || "");
+  const postAuthorId =
+    typeof post.author === "string"
+      ? post.author
+      : String(post.author?._id || post.author?.id || "");
+  const isOwnPost = Boolean(
+    currentUserId && postAuthorId && currentUserId === postAuthorId
+  );
 
   // Build media list — support both mediaUrls array and legacy mediaUrl
-  const mediaList: string[] =
+  const rawMediaList: string[] =
     post.mediaUrls && post.mediaUrls.length > 0
       ? post.mediaUrls
       : post.mediaUrl
       ? [post.mediaUrl]
       : [];
+
+  const mediaList: string[] = rawMediaList.map(resolveMediaUrl);
 
   const isVideo =
     post.mediaType === "video" ||
@@ -165,18 +214,8 @@ export default function PostCard({ post, isVisible = false }: Props) {
     }
   };
 
-  const handleShare = async () => {
-    try {
-      const shareUrl = `https://buzzchat.app/post/${post._id}`;
-      const contentSnippet = post.content ? `"${post.content.slice(0, 100)}${post.content.length > 100 ? '...' : ''}"` : '';
-      await Share.share({
-        message: `Check out this post on Buzz Chat by @${post.author?.username || 'user'}:\n${contentSnippet}\n${shareUrl}`,
-        url: shareUrl,
-        title: "Share Post",
-      });
-    } catch (err) {
-      console.error("Failed to share post", err);
-    }
+  const handleShare = () => {
+    setShareModalVisible(true);
   };
 
   return (
@@ -202,25 +241,17 @@ export default function PostCard({ post, isVisible = false }: Props) {
             </View>
             <Text style={styles.username}>
               @{post.author?.username} · {formattedDate}
+              {post.isEdited ? <Text style={{ color: "#64748B", fontSize: 11 }}> (edited)</Text> : null}
             </Text>
           </View>
         </TouchableOpacity>
 
-        <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
-          {!isOwnPost && (
-            <TouchableOpacity
-              onPress={() => setReportModalVisible(true)}
-              style={styles.moreBtn}
-            >
-              <Text style={styles.moreText}>🚩</Text>
-            </TouchableOpacity>
-          )}
-          {isOwnPost && (
-            <TouchableOpacity onPress={handleDelete} style={styles.moreBtn}>
-              <Text style={styles.moreText}>🗑️</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        <TouchableOpacity
+          onPress={() => setOptionsModalVisible(true)}
+          style={styles.moreBtn}
+        >
+          <Ionicons name="ellipsis-horizontal" size={20} color="#94A3B8" />
+        </TouchableOpacity>
       </View>
 
       {/* Post Text Content */}
@@ -255,11 +286,12 @@ export default function PostCard({ post, isVisible = false }: Props) {
           {isVideo ? (
             /* ── Video Player ── */
             <Video
+              ref={videoRef}
               source={{ uri: mediaList[0] }}
               style={styles.mediaVideo}
               useNativeControls
               resizeMode={ResizeMode.CONTAIN}
-              shouldPlay={isVisible}
+              shouldPlay={shouldPlayVideo}
             />
           ) : mediaList.length === 1 ? (
             /* ── Single Image ── */
@@ -446,9 +478,146 @@ export default function PostCard({ post, isVisible = false }: Props) {
           </View>
         </Modal>
       )}
+
+      {/* Options Menu Modal */}
+      <Modal
+        visible={optionsModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOptionsModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setOptionsModalVisible(false)}
+        >
+          <TouchableOpacity activeOpacity={1} style={styles.optionsSheet}>
+            <View style={styles.sheetHandle} />
+
+            {isOwnPost ? (
+              <>
+                <TouchableOpacity
+                  style={styles.optionItem}
+                  onPress={() => {
+                    setOptionsModalVisible(false);
+                    setEditContent(post.content || "");
+                    setEditModalVisible(true);
+                  }}
+                >
+                  <Ionicons name="create-outline" size={20} color="#38BDF8" />
+                  <Text style={styles.optionText}>Edit Post</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.optionItem, { borderBottomWidth: 0 }]}
+                  onPress={() => {
+                    setOptionsModalVisible(false);
+                    handleDelete();
+                  }}
+                >
+                  <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                  <Text style={[styles.optionText, { color: "#EF4444" }]}>Delete Post</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={styles.optionItem}
+                  onPress={() => {
+                    setOptionsModalVisible(false);
+                    setReportModalVisible(true);
+                  }}
+                >
+                  <Ionicons name="flag-outline" size={20} color="#F59E0B" />
+                  <Text style={styles.optionText}>Report Post</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.optionItem, { borderBottomWidth: 0 }]}
+                  onPress={() => {
+                    setOptionsModalVisible(false);
+                    toggleBookmark(post._id);
+                  }}
+                >
+                  <Ionicons
+                    name={isBookmarked ? "bookmark" : "bookmark-outline"}
+                    size={20}
+                    color="#C084FC"
+                  />
+                  <Text style={styles.optionText}>
+                    {isBookmarked ? "Remove Bookmark" : "Save Post"}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Edit Post Modal */}
+      <Modal
+        visible={editModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={[styles.modalOverlay, { justifyContent: "center", padding: 20 }]}
+          activeOpacity={1}
+          onPress={() => setEditModalVisible(false)}
+        >
+          <TouchableOpacity activeOpacity={1} style={styles.editBox}>
+            <View style={styles.editHeader}>
+              <Text style={styles.editTitle}>Edit Post</Text>
+              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={styles.editInput}
+              multiline
+              value={editContent}
+              onChangeText={setEditContent}
+              placeholder="What's on your mind?"
+              placeholderTextColor="#64748B"
+            />
+
+            <View style={styles.editActions}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={() => setEditModalVisible(false)}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.saveBtn}
+                onPress={handleSaveEdit}
+                disabled={savingEdit}
+              >
+                {savingEdit ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.saveBtnText}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Share Reel / Post Modal */}
+      <ShareReelModal
+        visible={shareModalVisible}
+        reel={post}
+        onClose={() => setShareModalVisible(false)}
+      />
     </View>
   );
 }
+
+export default React.memo(PostCard);
 
 const styles = StyleSheet.create({
   card: {
@@ -518,18 +687,19 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: "hidden",
     backgroundColor: "#0f172a",
+    width: "100%",
   },
   mediaVideo: {
     width: "100%",
-    height: 240,
+    height: MEDIA_HEIGHT,
     backgroundColor: "#000",
   },
   mediaSingle: {
     width: "100%",
-    height: 240,
+    height: MEDIA_HEIGHT,
   },
   mediaCarouselItem: {
-    height: 240,
+    height: MEDIA_HEIGHT,
   },
 
   /* ── Carousel indicators ── */
@@ -633,11 +803,11 @@ const styles = StyleSheet.create({
   },
   fullscreenImage: {
     width: SCREEN_WIDTH,
-    height: "100%",
+    height: SCREEN_HEIGHT,
   },
   fullscreenVideo: {
     width: SCREEN_WIDTH,
-    height: 340,
+    height: SCREEN_HEIGHT,
   },
   floatingHeartContainer: {
     position: "absolute",
@@ -653,5 +823,106 @@ const styles = StyleSheet.create({
   },
   floatingHeartText: {
     fontSize: 64,
+  },
+
+  /* ── Options Sheet & Edit Modal Styles ── */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    justifyContent: "flex-end",
+  },
+  optionsSheet: {
+    backgroundColor: "#1e293b",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 32,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    backgroundColor: "#475569",
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 14,
+  },
+  optionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.08)",
+  },
+  optionText: {
+    color: "#f8fafc",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  editBox: {
+    backgroundColor: "#1e293b",
+    borderRadius: 20,
+    padding: 20,
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  editHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  editTitle: {
+    color: "#f8fafc",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  editInput: {
+    backgroundColor: "#0f172a",
+    color: "#f8fafc",
+    borderRadius: 14,
+    padding: 14,
+    minHeight: 120,
+    textAlignVertical: "top",
+    fontSize: 15,
+    marginBottom: 18,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  editActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+  },
+  cancelBtn: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "#334155",
+  },
+  cancelBtnText: {
+    color: "#94a3b8",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  saveBtn: {
+    paddingHorizontal: 22,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "#6366f1",
+  },
+  saveBtnText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
   },
 });
