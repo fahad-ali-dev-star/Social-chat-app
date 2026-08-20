@@ -28,11 +28,14 @@ class RootErrorBoundary extends Component<{ children: React.ReactNode }, { hasEr
 
   render() {
     if (this.state.hasError) {
+      const errMsg = String(this.state.error?.message || this.state.error || "Unknown error");
+      const errStack = String(this.state.error?.stack || "").slice(0, 600);
       return (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorTitle}>🐝 Buzz Chat</Text>
+          <Text style={styles.errorTitle}>🐝 Buzz Chat — Crash</Text>
           <Text style={styles.errorSub}>Something went wrong while launching.</Text>
-          <Text style={styles.errorDetails}>{String(this.state.error?.message || this.state.error || "")}</Text>
+          <Text style={styles.errorDetails}>{errMsg}</Text>
+          <Text style={styles.errorStack}>{errStack}</Text>
           <TouchableOpacity
             style={styles.retryBtn}
             onPress={() => this.setState({ hasError: false, error: null })}
@@ -106,9 +109,17 @@ const styles = StyleSheet.create({
   },
   errorDetails: {
     fontSize: 12,
-    color: '#ef4444',
-    textAlign: 'center',
+    color: "#ef4444",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  errorStack: {
+    fontSize: 10,
+    color: "#94a3b8",
+    textAlign: "left",
     marginBottom: 24,
+    fontFamily: "monospace",
+    paddingHorizontal: 8,
   },
   retryBtn: {
     backgroundColor: '#6366f1',

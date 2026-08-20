@@ -16,6 +16,22 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npx expo start
    ```
 
+   If scanning the QR code on a physical phone shows `Failed to download remote update`, start Expo through a tunnel so the phone can reach Metro even when LAN access is blocked:
+
+   ```bash
+   npm run start:tunnel
+   ```
+
+   If the tunnel reports `remote gone away`, use the direct Wi-Fi connection instead:
+
+   ```bash
+   npm run start:lan
+   ```
+
+   Your phone and computer must be on the same Wi-Fi network. If Expo is already running on another port, stop the old process first, then run this command and scan the newly displayed QR code.
+
+   Keep the terminal running while the app is open. The phone and computer must still have internet access, and the QR code should be scanned from Expo Go (or opened in the installed development build).
+
 In the output, you'll find options to open the app in a
 
 - [development build](https://docs.expo.dev/develop/development-builds/introduction/)

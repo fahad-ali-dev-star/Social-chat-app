@@ -90,7 +90,7 @@ export const useMessageStore = create((set, get) => ({
 
     set((state) => ({ messages: [...state.messages, optimisticMsg] }));
 
-    const previewText = body?.trim() || (mediaType === "audio" ? "🎙️ Voice note" : "📷 Photo");
+    const previewText = body?.trim() || (mediaType === "audio" ? "🎙️ Voice note" : mediaType === "video" ? "🎬 Reel" : "📷 Photo");
     set((state) => ({
       conversations: state.conversations.map((c) =>
         c._id === conversationId
@@ -100,7 +100,7 @@ export const useMessageStore = create((set, get) => ({
     }));
 
     try {
-      const { data } = await api.post(`/messages/${conversationId}`, { body, mediaUrl, mediaType, replyToId });
+      const { data } = await api.post(`/messages/${conversationId}`, { body, mediaUrl, mediaType, replyTo: replyToId });
       set((state) => ({
         messages: state.messages.map((m) => (m._id === tempId ? data.message : m)),
       }));

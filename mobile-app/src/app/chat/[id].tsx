@@ -22,6 +22,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Video, ResizeMode, Audio } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
 import api from "../../api";
+import { resolveMediaUrl } from "../../config";
 import { useMessageStore } from "../../messageStore";
 import { useAuthStore } from "../../authStore";
 import VerifiedBadge from "../../components/VerifiedBadge";
@@ -112,12 +113,13 @@ function VoiceNotePlayer({ uri, isMine }: { uri: string; isMine: boolean }) {
 function ChatVideoPlayer({ uri }: { uri: string }) {
   const [playing, setPlaying] = useState(false);
   const videoRef = useRef<Video>(null);
+  const resolvedUri = resolveMediaUrl(uri);
 
   return (
     <View style={styles.chatVideoContainer}>
       <Video
         ref={videoRef}
-        source={{ uri }}
+        source={{ uri: resolvedUri }}
         style={styles.chatVideo}
         resizeMode={ResizeMode.COVER}
         useNativeControls={playing}
