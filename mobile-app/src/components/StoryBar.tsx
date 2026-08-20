@@ -16,6 +16,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Video, ResizeMode } from "expo-av";
 import api from "../api";
 import { useAuthStore } from "../authStore";
+import { usePostStore } from "../postStore";
 import VerifiedBadge from "./VerifiedBadge";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -37,6 +38,7 @@ export default function StoryBar() {
   const [activeStoryIdx, setActiveStoryIdx] = useState<number>(0);
   const [uploading, setUploading] = useState(false);
   const user = useAuthStore((s) => s.user);
+  const setStoryViewerOpen = usePostStore((s) => s.setStoryViewerOpen);
 
   // Animated progress bar
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -104,6 +106,11 @@ export default function StoryBar() {
   const isMyStory =
     String(currentStory?.user?._id || currentStory?.user || "") ===
     String(user?.id || user?._id);
+
+  useEffect(() => {
+    setStoryViewerOpen(activeGroupIdx !== null);
+    return () => setStoryViewerOpen(false);
+  }, [activeGroupIdx, setStoryViewerOpen]);
 
   // Start / restart animated progress whenever active story changes
   const startProgress = useCallback(() => {

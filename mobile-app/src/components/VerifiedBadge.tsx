@@ -6,7 +6,7 @@ interface Props {
 }
 
 /**
- * Instagram verified badge: #0095F6 circle with a white checkmark.
+ * Blue scalloped badge with a centered white checkmark.
  */
 export default function VerifiedBadge({ size = 12 }: Props) {
   const stemW = size * 0.22;
@@ -21,11 +21,37 @@ export default function VerifiedBadge({ size = 12 }: Props) {
         {
           width: size,
           height: size,
-          borderRadius: size / 2,
         },
       ]}
       accessibilityLabel="Verified"
     >
+      {Array.from({ length: 12 }, (_value, index) => (
+        <View
+          key={index}
+          style={[
+            styles.scallop,
+            {
+              width: size * 0.3,
+              height: size * 0.3,
+              borderRadius: size * 0.15,
+              left: size * 0.35 + Math.cos((index * 30 * Math.PI) / 180) * size * 0.3,
+              top: size * 0.35 + Math.sin((index * 30 * Math.PI) / 180) * size * 0.3,
+            },
+          ]}
+        />
+      ))}
+      <View
+        style={[
+          styles.center,
+          {
+            width: size * 0.82,
+            height: size * 0.82,
+            borderRadius: size * 0.41,
+            left: size * 0.09,
+            top: size * 0.09,
+          },
+        ]}
+      />
       <View
         style={[
           styles.bar,
@@ -56,9 +82,16 @@ export default function VerifiedBadge({ size = 12 }: Props) {
 
 const styles = StyleSheet.create({
   badge: {
-    backgroundColor: "#0095F6",
+    position: "relative",
     marginLeft: 3,
-    overflow: "hidden",
+  },
+  scallop: {
+    position: "absolute",
+    backgroundColor: "#1D9BF0",
+  },
+  center: {
+    position: "absolute",
+    backgroundColor: "#1D9BF0",
   },
   bar: {
     position: "absolute",

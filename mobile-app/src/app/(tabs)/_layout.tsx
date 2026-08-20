@@ -1,10 +1,11 @@
 import { useEffect } from "react";
 import { Tabs } from "expo-router";
-import { View, Text, StyleSheet, Platform } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNotificationStore } from "../../notificationStore";
 import { setAppBadgeCount } from "../../utils/notifications";
+import { IG } from "../../constants/theme";
 
 function BadgeIcon({
   name,
@@ -34,21 +35,18 @@ function BadgeIcon({
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const safePaddingBottom = Math.max(insets.bottom, 12);
-  const tabHeight = 60 + safePaddingBottom;
+  const tabHeight = 56 + safePaddingBottom;
 
   const unreadMsgCount = useNotificationStore((s) => s.unreadMsgCount);
   const unreadNotifCount = useNotificationStore((s) => s.unreadNotifCount);
   const initSocketAndPolling = useNotificationStore((s) => s.initSocketAndPolling);
 
-  // Initialize socket, fetch unread counts, and set app icon badge
   useEffect(() => {
     initSocketAndPolling();
   }, []);
 
-  // Update app icon badge whenever unread counts change
   useEffect(() => {
-    const totalBadge = unreadMsgCount + unreadNotifCount;
-    setAppBadgeCount(totalBadge);
+    setAppBadgeCount(unreadMsgCount + unreadNotifCount);
   }, [unreadMsgCount, unreadNotifCount]);
 
   return (
@@ -56,22 +54,17 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: "#11151D",
-          borderTopColor: "#1E232E",
-          borderTopWidth: 1,
+          backgroundColor: IG.tabBar,
+          borderTopColor: IG.border,
+          borderTopWidth: StyleSheet.hairlineWidth,
           height: tabHeight,
           paddingBottom: safePaddingBottom,
-          paddingTop: 8,
-          elevation: 10,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: -3 },
-          shadowOpacity: 0.35,
-          shadowRadius: 6,
+          paddingTop: 6,
         },
-        tabBarActiveTintColor: "#EC4899",
-        tabBarInactiveTintColor: "#64748B",
+        tabBarActiveTintColor: IG.tabActive,
+        tabBarInactiveTintColor: IG.tabInactive,
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: "600",
           marginTop: 2,
         },
@@ -82,7 +75,7 @@ export default function TabLayout() {
         options={{
           title: "Home",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "home" : "home-outline"} size={22} color={color} />
+            <Ionicons name={focused ? "home" : "home-outline"} size={24} color={color} />
           ),
         }}
       />
@@ -91,7 +84,7 @@ export default function TabLayout() {
         options={{
           title: "Reels",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "videocam" : "videocam-outline"} size={22} color={color} />
+            <Ionicons name={focused ? "play-circle" : "play-circle-outline"} size={26} color={color} />
           ),
         }}
       />
@@ -100,44 +93,21 @@ export default function TabLayout() {
         options={{
           title: "Search",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "search" : "search-outline"} size={22} color={color} />
+            <Ionicons name={focused ? "search" : "search-outline"} size={24} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="messages"
         options={{
-          title: "Chats",
+          title: "Messages",
           tabBarIcon: ({ color, focused }) => (
             <BadgeIcon
-              name={focused ? "chatbubbles" : "chatbubbles-outline"}
-              size={22}
+              name={focused ? "chatbubble-ellipses" : "chatbubble-ellipses-outline"}
+              size={24}
               color={color}
               badgeCount={unreadMsgCount}
             />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="notifications"
-        options={{
-          title: "Alerts",
-          tabBarIcon: ({ color, focused }) => (
-            <BadgeIcon
-              name={focused ? "notifications" : "notifications-outline"}
-              size={22}
-              color={color}
-              badgeCount={unreadNotifCount}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="bookmarks"
-        options={{
-          title: "Saved",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "bookmark" : "bookmark-outline"} size={22} color={color} />
           ),
         }}
       />
@@ -146,8 +116,23 @@ export default function TabLayout() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "person" : "person-outline"} size={22} color={color} />
+            <Ionicons name={focused ? "person-circle" : "person-circle-outline"} size={26} color={color} />
           ),
+        }}
+      />
+      {/* Hidden from tab bar — reachable via header / profile */}
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          href: null,
+          title: "Notifications",
+        }}
+      />
+      <Tabs.Screen
+        name="bookmarks"
+        options={{
+          href: null,
+          title: "Saved",
         }}
       />
     </Tabs>
@@ -162,12 +147,12 @@ const badgeStyles = StyleSheet.create({
     minWidth: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: "#EF4444",
+    backgroundColor: IG.like,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 4,
     borderWidth: 1.5,
-    borderColor: "#11151D",
+    borderColor: IG.bg,
   },
   badgeText: {
     color: "#fff",

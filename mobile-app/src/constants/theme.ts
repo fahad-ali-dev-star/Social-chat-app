@@ -1,11 +1,26 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Buzz Chat Instagram-dark design tokens.
+ * Screens should prefer these over hardcoded slate/indigo/pink.
  */
 
-import '@/global.css';
-
 import { Platform } from 'react-native';
+
+export const IG = {
+  bg: '#000000',
+  surface: '#121212',
+  elevated: '#1A1A1A',
+  border: '#262626',
+  text: '#F5F5F5',
+  textSecondary: '#A8A8A8',
+  textMuted: '#737373',
+  accent: '#0095F6',
+  like: '#FF3040',
+  danger: '#ED4956',
+  success: '#10B981',
+  tabBar: '#000000',
+  tabInactive: '#A8A8A8',
+  tabActive: '#FFFFFF',
+} as const;
 
 export const Colors = {
   light: {
@@ -16,11 +31,11 @@ export const Colors = {
     textSecondary: '#60646C',
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    text: IG.text,
+    background: IG.bg,
+    backgroundElement: IG.surface,
+    backgroundSelected: IG.elevated,
+    textSecondary: IG.textSecondary,
   },
 } as const;
 
@@ -28,13 +43,9 @@ export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {

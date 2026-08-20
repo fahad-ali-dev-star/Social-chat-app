@@ -1,11 +1,7 @@
 import { create } from "zustand";
-import io from "socket.io-client";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "./api";
-import { SOCKET_SERVER_URL } from "./config";
 import { registerForPushNotificationsAsync, triggerLocalNotification } from "./utils/notifications";
-
-let socket = null;
 
 export const useNotificationStore = create((set, get) => ({
   unreadNotifCount: 0,
@@ -35,76 +31,6 @@ export const useNotificationStore = create((set, get) => ({
       // Initial fetch
       get().fetchUnreadCounts();
 
-      // Setup Socket.IO if not already initialized
-      if (!socket) {
-        socket = io(SOCKET_SERVER_URL, {
-          withCredentials: true,
-          auth: { token },
-          transports: ["websocket", "polling"],
-          reconnectionDelay: 1000,
-          reconnectionDelayMax: 5000,
-        });
-
-        socket.on("notification", (notif) => {
-          const senderName = notif.sender?.displayName || notif.sender?.username || "Someone";
-          let body = "";
-          if (notif.type === "like") body = `${senderName} liked your post ❤️`;
-          else if (notif.type === "comment") body = `${senderName} commented on your post 💬`;
-          else if (notif.type === "follow") body = `${senderName} started following you 👤`;
-          else if (notif.type === "mention") body = `${senderName} mentioned you 📢`;
-          else body = `New notification from ${senderName}`;
-
-          set((state) => ({
-            unreadNotifCount: state.unreadNotifCount + 1,
-            notifications: [notif, ...state.notifications],
-            activeToast: {
-              type: "notification",
-              title: "🔔 New Notification",
-              body,
-            },
-          }));
-
-          // Trigger native system notification
-          triggerLocalNotification({
-            title: "🔔 Buzz Chat Alert",
-            body,
-            data: { notifId: notif._id },
-          });
-
-          // Auto-hide toast after 4 seconds
-          setTimeout(() => {
-            get().clearToast();
-          }, 4000);
-        });
-
-        socket.on("new_message", ({ message }) => {
-          const senderName = message.sender?.displayName || message.sender?.username || "Someone";
-          const body = message.body || (message.mediaType === "audio" ? "🎙️ Voice note" : "📷 Photo");
-
-          set((state) => ({
-            unreadMsgCount: state.unreadMsgCount + 1,
-            activeToast: {
-              type: "message",
-              title: `💬 ${senderName}`,
-              body,
-            },
-          }));
-
-          // Trigger native system notification
-          triggerLocalNotification({
-            title: `💬 ${senderName}`,
-            body,
-            data: { conversationId: message.conversation },
-          });
-
-          // Auto-hide toast after 4 seconds
-          setTimeout(() => {
-            get().clearToast();
-          }, 4000);
-
-          get().fetchConversations();
-        });
-      }
     } catch (err) {
       console.error("Mobile socket setup error:", err);
     }
@@ -129,6 +55,27 @@ export const useNotificationStore = create((set, get) => ({
     } catch (err) {
       console.error("Fetch unread counts error:", err);
     }
+  },
+
+  addNotification: (notif) => {
+    const senderName = notif.sender?.displayName || notif.sender?.username || "Someone";
+    let body = `New notification from ${senderName}`;
+    if (notif.type === "like") body = `${senderName} liked your post`;
+    else if (notif.type === "comment") body = `${senderName} commented on your post`;
+    else if (notif.type === "follow") body = `${senderName} started following you`;
+    else if (notif.type === "mention") body = `${senderName} mentioned you`;
+
+    set((state) => ({
+      unreadNotifCount: state.unreadNotifCount + 1,
+      notifications: [notif, ...state.notifications].slice(0, 50),
+      activeToast: { type: "notification", title: "New notification", body },
+    }));
+    triggerLocalNotification({
+      title: "Buzz Chat Alert",
+      body,
+      data: { notifId: notif._id },
+    });
+    setTimeout(() => get().clearToast(), 4000);
   },
 
   // Load full notification list
@@ -178,11 +125,4 @@ export const useNotificationStore = create((set, get) => ({
     }
   },
 
-  // Disconnect socket
-  disconnectSocket: () => {
-    if (socket) {
-      socket.disconnect();
-      socket = null;
-    }
-  },
 }));

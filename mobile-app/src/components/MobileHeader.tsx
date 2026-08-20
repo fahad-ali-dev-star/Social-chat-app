@@ -15,6 +15,7 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "../authStore";
 import { useNotificationStore } from "../notificationStore";
+import { IG } from "../constants/theme";
 
 export default function MobileHeader({ title }: { title?: string }) {
   const insets = useSafeAreaInsets();
@@ -59,6 +60,17 @@ export default function MobileHeader({ title }: { title?: string }) {
   const handleOpenMessages = () => {
     fetchConversations();
     setMsgModalOpen(true);
+  };
+
+  const handleNotificationPress = (notification: any) => {
+    setNotifModalOpen(false);
+    if (notification.conversation?._id || notification.conversation) {
+      router.push(`/chat/${notification.conversation._id || notification.conversation}` as any);
+      return;
+    }
+    if (notification.sender?.username) {
+      router.push(`/user/${notification.sender.username}` as any);
+    }
   };
 
   const handleLogout = async () => {
@@ -111,7 +123,7 @@ export default function MobileHeader({ title }: { title?: string }) {
             onPress={handleOpenMessages}
             activeOpacity={0.7}
           >
-            <Text style={styles.iconText}>💬</Text>
+            <Text style={[styles.iconText, { color: IG.text }]}>💬</Text>
             {unreadMsgCount > 0 && (
               <View style={styles.redDot}>
                 <Text style={styles.dotText}>
@@ -130,7 +142,7 @@ export default function MobileHeader({ title }: { title?: string }) {
             onPress={handleOpenNotifications}
             activeOpacity={0.7}
           >
-            <Text style={styles.iconText}>🔔</Text>
+            <Text style={[styles.iconText, { color: IG.text }]}>🔔</Text>
             {unreadNotifCount > 0 && (
               <View style={styles.redDot}>
                 <Text style={styles.dotText}>
@@ -203,7 +215,11 @@ export default function MobileHeader({ title }: { title?: string }) {
                   else actionText = "sent a notification";
 
                   return (
-                    <View style={[styles.notifItem, !item.read && styles.unreadNotifItem]}>
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={() => handleNotificationPress(item)}
+                      style={[styles.notifItem, !item.read && styles.unreadNotifItem]}
+                    >
                       <View style={styles.notifAvatar}>
                         <Text style={styles.avatarLetter}>
                           {senderName[0]?.toUpperCase()}
@@ -216,7 +232,7 @@ export default function MobileHeader({ title }: { title?: string }) {
                         </Text>
                       </View>
                       {!item.read && <View style={styles.unreadIndicator} />}
-                    </View>
+                    </TouchableOpacity>
                   );
                 }}
               />

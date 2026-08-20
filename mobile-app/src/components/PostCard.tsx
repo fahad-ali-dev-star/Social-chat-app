@@ -109,6 +109,7 @@ function PostCard({ post, isVisible = false }: Props) {
   const videoRef = useRef<Video>(null);
   const lastTapRef = useRef<number>(0);
   const heartAnim = useRef(new Animated.Value(0)).current;
+  const storyViewerOpen = usePostStore((s) => s.storyViewerOpen);
 
   const shouldPlayVideo =
     isVisible &&
@@ -117,7 +118,8 @@ function PostCard({ post, isVisible = false }: Props) {
     !reportModalVisible &&
     !mediaModalVisible &&
     !optionsModalVisible &&
-    !editModalVisible;
+    !editModalVisible &&
+    !storyViewerOpen;
 
   useEffect(() => {
     if (!shouldPlayVideo && videoRef.current) {

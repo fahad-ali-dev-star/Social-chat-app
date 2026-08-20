@@ -8,6 +8,8 @@ export const usePostStore = create((set, get) => ({
   page: 1,
   hasMore: true,
   bookmarkedIds: new Set(),
+  storyViewerOpen: false,
+  setStoryViewerOpen: (open) => set({ storyViewerOpen: open }),
 
   loadFeed: async (reset = false, filter = "all", mediaType = "") => {
     const { page, loading, hasMore } = get();
@@ -27,9 +29,11 @@ export const usePostStore = create((set, get) => ({
         hasMore: data.hasMore ?? false,
         loading: false,
       }));
+      return fetchedPosts;
     } catch (err) {
       console.error("Failed to load feed", err);
-      set({ posts: [], loading: false });
+      set({ loading: false });
+      return [];
     }
   },
 

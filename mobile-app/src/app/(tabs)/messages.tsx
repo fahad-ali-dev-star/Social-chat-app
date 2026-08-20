@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMessageStore } from "../../messageStore";
 import { useAuthStore } from "../../authStore";
 import ConversationItem from "../../components/ConversationItem";
+import { IG } from "../../constants/theme";
 
 export default function MessagesScreen() {
   const insets = useSafeAreaInsets();
@@ -55,7 +56,7 @@ export default function MessagesScreen() {
 
       {loading && conversations.length === 0 ? (
         <View style={styles.centerLoading}>
-          <ActivityIndicator color="#6366f1" size="large" />
+          <ActivityIndicator color={IG.accent} size="large" />
         </View>
       ) : filteredConversations.length === 0 ? (
         <View style={styles.centerLoading}>
@@ -78,7 +79,7 @@ export default function MessagesScreen() {
             <RefreshControl
               refreshing={loading}
               onRefresh={loadConversations}
-              tintColor="#6366f1"
+              tintColor={IG.accent}
             />
           }
           renderItem={({ item }) => <ConversationItem conversation={item} />}
@@ -91,7 +92,7 @@ export default function MessagesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0f172a",
+    backgroundColor: IG.bg,
   },
   header: {
     paddingHorizontal: 16,
@@ -108,7 +109,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   searchInput: {
-    backgroundColor: "#1e293b",
+    backgroundColor: IG.surface,
     color: "#fff",
     borderRadius: 14,
     paddingHorizontal: 14,
@@ -134,7 +135,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   emptySub: {
-    color: "#64748b",
+    color: IG.textSecondary,
     fontSize: 14,
     textAlign: "center",
   },

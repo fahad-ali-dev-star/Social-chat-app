@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import api from "../../api";
 import { useNotificationStore } from "../../notificationStore";
+import { IG } from "../../constants/theme";
 
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
@@ -20,6 +21,7 @@ export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [error, setError] = useState("");
   const markNotificationsRead = useNotificationStore((s) => s.markNotificationsRead);
 
   useEffect(() => {
@@ -28,6 +30,7 @@ export default function NotificationsScreen() {
 
   const loadNotifications = async () => {
     setLoading(true);
+    setError("");
     try {
       const { data } = await api.get("/notifications");
       setNotifications(data.notifications || []);
@@ -35,6 +38,7 @@ export default function NotificationsScreen() {
       await markNotificationsRead();
     } catch (err) {
       console.error("Notifications load error", err);
+      setError("Notifications are temporarily unavailable. Try again.");
     } finally {
       setLoading(false);
     }
@@ -83,6 +87,14 @@ export default function NotificationsScreen() {
     }
   };
 
+  const handleNotificationPress = (notification: any) => {
+    if (notification.conversation?._id || notification.conversation) {
+      router.push(`/chat/${notification.conversation._id || notification.conversation}` as any);
+      return;
+    }
+    handleUserPress(notification.sender?.username);
+  };
+
   return (
     <SafeAreaView style={[styles.container, { paddingTop }]}>
       <View style={styles.header}>
@@ -93,12 +105,21 @@ export default function NotificationsScreen() {
         <View style={styles.centerLoading}>
           <ActivityIndicator color="#6366f1" size="large" />
         </View>
+      ) : error ? (
+        <View style={styles.centerLoading}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadNotifications}>
+            <Text style={styles.retryButtonText}>Try again</Text>
+          </TouchableOpacity>
+        </View>
       ) : notifications.length === 0 ? (
         <View style={styles.centerLoading}>
           <Text style={styles.emptyIcon}>🔔</Text>
           <Text style={styles.emptyText}>No notifications yet</Text>
         </View>
       ) : (
+        <>
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
         <FlatList
           data={notifications}
           keyExtractor={(item) => item._id}
@@ -108,7 +129,11 @@ export default function NotificationsScreen() {
             const senderId = item.sender?._id || item.sender?.id;
 
             return (
-              <View style={[styles.card, !item.read && styles.unreadCard]}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => handleNotificationPress(item)}
+                style={[styles.card, !item.read && styles.unreadCard]}
+              >
                 <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={() => handleUserPress(item.sender?.username)}
@@ -171,10 +196,11 @@ export default function NotificationsScreen() {
                     </View>
                   )}
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           }}
         />
+        </>
       )}
     </SafeAreaView>
   );
@@ -183,15 +209,15 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0f172a",
+    backgroundColor: IG.bg,
   },
   header: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#1e293b",
+    borderBottomColor: IG.border,
   },
   title: {
-    color: "#fff",
+    color: IG.text,
     fontSize: 20,
     fontWeight: "bold",
   },
@@ -205,13 +231,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   emptyText: {
-    color: "#64748b",
+    color: IG.textSecondary,
     fontSize: 16,
   },
   card: {
     flexDirection: "row",
     alignItems: "flex-start",
-    backgroundColor: "#1e293b",
+    backgroundColor: IG.surface,
     padding: 14,
     borderRadius: 14,
     marginBottom: 8,
@@ -219,13 +245,13 @@ const styles = StyleSheet.create({
   },
   unreadCard: {
     borderLeftWidth: 3,
-    borderLeftColor: "#6366f1",
+    borderLeftColor: IG.accent,
   },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#6366f1",
+    backgroundColor: IG.accent,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -245,7 +271,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   timeText: {
-    color: "#64748b",
+    color: IG.textSecondary,
     fontSize: 11,
     marginTop: 4,
   },
@@ -262,7 +288,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   acceptBtn: {
-    backgroundColor: "#6366f1",
+    backgroundColor: IG.accent,
   },
   acceptBtnText: {
     color: "#ffffff",
@@ -278,5 +304,22 @@ const styles = StyleSheet.create({
     color: "#94a3b8",
     fontWeight: "600",
     fontSize: 13,
+  },
+  errorText: {
+    color: IG.danger,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    textAlign: "center",
+  },
+  retryButton: {
+    backgroundColor: IG.accent,
+    borderRadius: 8,
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  retryButtonText: {
+    color: IG.bg,
+    fontWeight: "700",
   },
 });

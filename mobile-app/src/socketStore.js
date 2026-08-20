@@ -28,11 +28,12 @@ export const initSocket = async () => {
 
   socket.on("notification", (notif) => {
     useNotificationStore.getState().addNotification(notif);
-    useNotificationStore.getState().fetchUnreadCount();
+    useNotificationStore.getState().fetchUnreadCounts();
   });
 
   socket.on("new_message", ({ message, conversationId }) => {
     useMessageStore.getState().addIncomingMessage(message, conversationId);
+    useNotificationStore.getState().fetchUnreadCounts();
   });
 
   socket.on("message_updated", ({ message }) => {
