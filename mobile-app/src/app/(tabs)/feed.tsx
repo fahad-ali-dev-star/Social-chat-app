@@ -16,6 +16,7 @@ import StoryBar from "../../components/StoryBar";
 import PostCard from "../../components/PostCard";
 import CreatePostModal from "../../components/CreatePostModal";
 import { usePostStore } from "../../postStore";
+import { IG } from "../../constants/theme";
 
 export default function FeedScreen() {
   const isFocused = useIsFocused();
@@ -64,7 +65,7 @@ export default function FeedScreen() {
       {/* Feed List with Stories & Filter inside ListHeaderComponent */}
       {loading && posts.length === 0 ? (
         <View style={styles.centerLoading}>
-          <ActivityIndicator size="large" color="#6366f1" />
+          <ActivityIndicator size="large" color={IG.accent} />
         </View>
       ) : (
         <FlatList
@@ -76,7 +77,7 @@ export default function FeedScreen() {
           windowSize={5}
           removeClippedSubviews={Platform.OS === "android"}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#6366f1" />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={IG.accent} />
           }
           ListHeaderComponent={
             <>
@@ -140,7 +141,7 @@ export default function FeedScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0f172a",
+    backgroundColor: IG.bg,
   },
   filterBar: {
     flexDirection: "row",
@@ -148,19 +149,19 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     gap: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#1e293b",
+    borderBottomColor: IG.border,
   },
   filterBtn: {
     paddingHorizontal: 16,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: "#1e293b",
+    backgroundColor: IG.surface,
   },
   filterBtnActive: {
-    backgroundColor: "#6366f1",
+    backgroundColor: IG.accent,
   },
   filterText: {
-    color: "#94a3b8",
+    color: IG.textSecondary,
     fontSize: 13,
     fontWeight: "600",
   },
@@ -200,11 +201,11 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#6366f1",
+    backgroundColor: IG.accent,
     justifyContent: "center",
     alignItems: "center",
     elevation: 5,
-    shadowColor: "#6366f1",
+    shadowColor: IG.accent,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,

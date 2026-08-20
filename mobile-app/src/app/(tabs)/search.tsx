@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import api from "../../api";
 import UserCard from "../../components/UserCard";
 import PostCard from "../../components/PostCard";
+import { IG } from "../../constants/theme";
 
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
@@ -25,6 +26,7 @@ export default function SearchScreen() {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [hashtags, setHashtags] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     loadDiscoverData();
@@ -40,6 +42,7 @@ export default function SearchScreen() {
       setHashtags(hashRes.data.hashtags || []);
     } catch (err) {
       console.error("Failed to load discover data", err);
+      setError("We could not load discovery right now.");
     }
   };
 
@@ -52,6 +55,7 @@ export default function SearchScreen() {
     }
 
     setLoading(true);
+    setError("");
     try {
       if (activeTab === "users") {
         const { data } = await api.get(`/users/search?q=${encodeURIComponent(text.trim())}`);
@@ -62,6 +66,7 @@ export default function SearchScreen() {
       }
     } catch (err) {
       console.error("Search error", err);
+      setError("Search is temporarily unavailable. Try again.");
     } finally {
       setLoading(false);
     }
@@ -112,6 +117,7 @@ export default function SearchScreen() {
       </View>
 
       {/* Results or Discover Section */}
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
       {loading ? (
         <View style={styles.centerLoading}>
           <ActivityIndicator color="#6366f1" size="large" />
@@ -172,15 +178,15 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0f172a",
+    backgroundColor: IG.bg,
   },
   searchHeader: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#1e293b",
+    borderBottomColor: IG.border,
   },
   searchInput: {
-    backgroundColor: "#1e293b",
+    backgroundColor: IG.surface,
     color: "#fff",
     borderRadius: 20,
     paddingHorizontal: 18,
@@ -190,7 +196,7 @@ const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: "#1e293b",
+    borderBottomColor: IG.border,
   },
   tab: {
     flex: 1,
@@ -199,15 +205,15 @@ const styles = StyleSheet.create({
   },
   activeTab: {
     borderBottomWidth: 2,
-    borderBottomColor: "#6366f1",
+    borderBottomColor: IG.accent,
   },
   tabText: {
-    color: "#64748b",
+    color: IG.textSecondary,
     fontWeight: "600",
     fontSize: 14,
   },
   activeTabText: {
-    color: "#6366f1",
+    color: IG.accent,
     fontWeight: "bold",
   },
   centerLoading: {
@@ -216,7 +222,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   emptyText: {
-    color: "#64748b",
+    color: IG.textSecondary,
     textAlign: "center",
     marginTop: 32,
     fontSize: 14,
@@ -236,7 +242,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#1e293b",
+    backgroundColor: IG.surface,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 16,
@@ -244,12 +250,18 @@ const styles = StyleSheet.create({
     borderColor: "#334155",
   },
   hashtagText: {
-    color: "#a5b4fc",
+    color: IG.accent,
     fontWeight: "bold",
     fontSize: 13,
   },
   hashtagCount: {
-    color: "#64748b",
+    color: IG.textSecondary,
     fontSize: 11,
+  },
+  errorText: {
+    color: IG.danger,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    textAlign: "center",
   },
 });

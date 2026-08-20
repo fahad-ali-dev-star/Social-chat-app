@@ -17,61 +17,15 @@ import { Video, ResizeMode } from "expo-av";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import api from "../../api";
 import { usePostStore } from "../../postStore";
 import { useSavedVideosStore } from "../../savedVideosStore";
 import CommentModal from "../../components/CommentModal";
 import VerifiedBadge from "../../components/VerifiedBadge";
 import CreatePostModal from "../../components/CreatePostModal";
 import ShareReelModal from "../../components/ShareReelModal";
+import { IG } from "../../constants/theme";
 
 const { width: WINDOW_WIDTH, height: WINDOW_HEIGHT } = Dimensions.get("window");
-
-// Sample high-quality video fallback items for Reels if user hasn't uploaded videos yet
-const SAMPLE_REELS = [
-  {
-    _id: "reel_sample_1",
-    content: "Exploring futuristic city nights 🌃✨ #nightlife #vibes #buzzchat",
-    mediaUrl: "https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4",
-    mediaType: "video",
-    likesCount: 1420,
-    commentCount: 89,
-    author: {
-      username: "alex_explorer",
-      displayName: "Alex Rivera",
-      avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
-      isVerified: true,
-    },
-  },
-  {
-    _id: "reel_sample_2",
-    content: "Sunset waves hit different 🌊🌅 Who wants to travel here?",
-    mediaUrl: "https://assets.mixkit.co/videos/preview/mixkit-sun-setting-over-ocean-waves-1587-large.mp4",
-    mediaType: "video",
-    likesCount: 3290,
-    commentCount: 214,
-    author: {
-      username: "ocean_breeze",
-      displayName: "Sarah Jenkins",
-      avatarUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150",
-      isVerified: true,
-    },
-  },
-  {
-    _id: "reel_sample_3",
-    content: "Morning coffee aesthetic ☕ Vol 1. Good morning everyone!",
-    mediaUrl: "https://assets.mixkit.co/videos/preview/mixkit-coffee-pour-in-slow-motion-42898-large.mp4",
-    mediaType: "video",
-    likesCount: 890,
-    commentCount: 45,
-    author: {
-      username: "daily_brew",
-      displayName: "The Daily Brew",
-      avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
-      isVerified: false,
-    },
-  },
-];
 
 interface ReelItemProps {
   item: any;
@@ -329,6 +283,7 @@ export default function ReelsScreen() {
   const [selectedReel, setSelectedReel] = useState<any>(null);
 
   const loadSaved = useSavedVideosStore((s) => s.loadSaved);
+  const loadFeed = usePostStore((s) => s.loadFeed);
 
   useEffect(() => {
     loadSaved();
@@ -338,19 +293,10 @@ export default function ReelsScreen() {
   const fetchReels = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get("/posts");
-      const fetchedPosts = data.posts || [];
-      const videoPosts = fetchedPosts.filter(
-        (p: any) =>
-          p.mediaType === "video" ||
-          p.mediaUrl?.match(/\.(mp4|webm|mov)(\?.*)?$/i)
-      );
-
-      // Combine video posts with high-quality sample reels
-      const combined = [...videoPosts, ...SAMPLE_REELS];
-      setReels(combined);
+      const videoPosts = await loadFeed(true, "all", "video");
+      setReels(videoPosts || []);
     } catch (err) {
-      setReels(SAMPLE_REELS);
+      setReels([]);
     } finally {
       setLoading(false);
     }
@@ -381,7 +327,17 @@ export default function ReelsScreen() {
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#EC4899" />
+          <ActivityIndicator size="large" color={IG.accent} />
+        </View>
+      ) : reels.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="videocam-outline" size={52} color={IG.textSecondary} />
+          <Text style={styles.emptyTitle}>No reels yet</Text>
+          <Text style={styles.emptyText}>Share a video and it will appear here.</Text>
+          <TouchableOpacity style={styles.emptyButton} onPress={() => setCreateModalVisible(true)}>
+            <Ionicons name="add" size={18} color={IG.bg} />
+            <Text style={styles.emptyButtonText}>Create a reel</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
@@ -430,7 +386,7 @@ export default function ReelsScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: IG.bg,
   },
   topHeader: {
     position: "absolute",
@@ -522,7 +478,7 @@ const styles = StyleSheet.create({
     borderColor: "#fff",
   },
   avatarFallback: {
-    backgroundColor: "#6366F1",
+    backgroundColor: IG.accent,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -561,9 +517,9 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: "#1e293b",
+    backgroundColor: IG.surface,
     borderWidth: 2,
-    borderColor: "#334155",
+    borderColor: IG.border,
     justifyContent: "center",
     alignItems: "center",
     marginTop: 2,
@@ -601,5 +557,37 @@ const styles = StyleSheet.create({
     color: "#cbd5e1",
     fontSize: 12,
     fontWeight: "500",
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 28,
+  },
+  emptyTitle: {
+    color: IG.text,
+    fontSize: 20,
+    fontWeight: "700",
+    marginTop: 14,
+  },
+  emptyText: {
+    color: IG.textSecondary,
+    fontSize: 14,
+    marginTop: 6,
+    textAlign: "center",
+  },
+  emptyButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: IG.accent,
+    borderRadius: 8,
+    marginTop: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  emptyButtonText: {
+    color: IG.bg,
+    fontWeight: "700",
   },
 });
