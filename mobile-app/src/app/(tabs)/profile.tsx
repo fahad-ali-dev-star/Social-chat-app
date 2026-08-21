@@ -16,6 +16,7 @@ import {
   Dimensions,
   Share,
   StatusBar,
+  RefreshControl,
 } from "react-native";
 import { Video, ResizeMode } from "expo-av";
 import { router } from "expo-router";
@@ -61,7 +62,22 @@ export default function ProfileScreen() {
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [activeStoryIdx, setActiveStoryIdx] = useState(0);
 
+  const [savedPosts, setSavedPosts] = useState<any[]>([]);
+  const [loadingSaved, setLoadingSaved] = useState(false);
+
   const { savedVideos, loadSaved } = useSavedVideosStore();
+
+  const loadSavedPosts = async () => {
+    setLoadingSaved(true);
+    try {
+      const { data } = await api.get("/users/bookmarks");
+      setSavedPosts(data.posts || []);
+    } catch (err) {
+      console.error("Failed to load bookmarks", err);
+    } finally {
+      setLoadingSaved(false);
+    }
+  };
 
   const handleShareProfile = async () => {
     try {
@@ -85,8 +101,15 @@ export default function ProfileScreen() {
     if (user?.username) {
       loadProfile();
       loadSaved();
+      loadSavedPosts();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (activeTab === "saved") {
+      loadSavedPosts();
+    }
+  }, [activeTab]);
 
   const loadProfile = async () => {
     setLoading(true);
@@ -451,53 +474,21 @@ export default function ProfileScreen() {
       ) : activeTab === "saved" ? (
         <FlatList
           key="saved-list"
-          data={savedVideos}
-          keyExtractor={(item) => item._id}
-          numColumns={3}
+          data={savedPosts.length > 0 ? savedPosts : savedVideos}
+          keyExtractor={(item, index) => item._id || String(item.id || index)}
           ListHeaderComponent={renderHeader}
           contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => {
-            const mediaUri = item.mediaUrl || item.mediaUrls?.[0];
-            const isVid = item.mediaType === "video" || mediaUri?.match(/\.(mp4|webm|mov)(\?.*)?$/i);
-            return (
-              <TouchableOpacity
-                style={styles.gridThumbContainer}
-                activeOpacity={0.85}
-                onPress={() => setSelectedVideo(item)}
-              >
-                {mediaUri ? isVid ? (
-                  <Video
-                    source={{ uri: mediaUri }}
-                    style={styles.gridThumbImage}
-                    resizeMode={ResizeMode.COVER}
-                    shouldPlay={false}
-                    isMuted
-                  />
-                ) : (
-                  <Image source={{ uri: mediaUri }} style={styles.gridThumbImage} resizeMode="cover" />
-                ) : (
-                  <View style={styles.gridThumbFallback}>
-                    <Text style={styles.gridThumbText} numberOfLines={2}>
-                      {item.content || "Reel"}
-                    </Text>
-                  </View>
-                )}
-                {isVid && (
-                  <View style={styles.videoIconBadge}>
-                    <Ionicons name="videocam" size={11} color="#fff" />
-                  </View>
-                )}
-                <View style={styles.playOverlay}>
-                  <Ionicons name="play-circle" size={32} color="rgba(255,255,255,0.85)" />
-                </View>
-              </TouchableOpacity>
-            );
-          }}
+          refreshControl={
+            <RefreshControl refreshing={loadingSaved} onRefresh={loadSavedPosts} tintColor="#6366f1" />
+          }
+          renderItem={({ item }) => <PostCard post={item} />}
           ListEmptyComponent={
             <View style={styles.emptyBox}>
               <Ionicons name="bookmark-outline" size={40} color="#475569" />
-              <Text style={styles.emptyText}>No saved videos yet.</Text>
-              <Text style={[styles.emptyText, { fontSize: 12, marginTop: 4 }]}>Tap the bookmark on any reel to save it.</Text>
+              <Text style={styles.emptyText}>No saved posts or videos yet.</Text>
+              <Text style={[styles.emptyText, { fontSize: 12, marginTop: 4 }]}>
+                Tap the bookmark icon 🔖 on any post to save it here!
+              </Text>
             </View>
           }
         />
