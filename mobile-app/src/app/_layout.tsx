@@ -5,6 +5,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { Stack } from 'expo-router';
 import { initSocket } from '../socketStore';
 import { useAuthStore } from '../authStore';
+import { registerForPushNotificationsAsync } from '../utils/notifications';
+import api from '../api';
 
 LogBox.ignoreLogs(['Video component from `expo-av` is deprecated', 'Video component from expo-av is deprecated']);
 
@@ -68,6 +70,11 @@ export default function RootLayout() {
     if (user) {
       try {
         initSocket().catch(() => {});
+        registerForPushNotificationsAsync().then((token) => {
+          if (token) {
+            api.post('/users/push-token', { token }).catch(() => {});
+          }
+        }).catch(() => {});
       } catch (e) {}
     }
   }, [user]);
