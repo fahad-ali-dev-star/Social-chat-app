@@ -10,6 +10,7 @@ import {
   getBookmarks,
   blockUser,
   respondToFollowRequest,
+  updatePushToken,
 } from "../controllers/userController.js";
 import { protect } from "../middleware/auth.js";
 
@@ -21,6 +22,7 @@ router.put("/me", protect, updateMe);
 router.get("/search", protect, searchUsers);
 router.get("/bookmarks", protect, getBookmarks);
 router.post("/bookmarks/:postId", protect, toggleBookmark);
+router.post("/push-token", protect, updatePushToken);
 
 // Dynamic routes
 router.get("/:username", protect, getProfile);

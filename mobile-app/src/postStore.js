@@ -1,15 +1,19 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "./api";
 import { useAuthStore } from "./authStore";
 
-export const usePostStore = create((set, get) => ({
-  posts: [],
-  loading: false,
-  page: 1,
-  hasMore: true,
-  bookmarkedIds: new Set(),
-  storyViewerOpen: false,
-  setStoryViewerOpen: (open) => set({ storyViewerOpen: open }),
+export const usePostStore = create(
+  persist(
+    (set, get) => ({
+      posts: [],
+      loading: false,
+      page: 1,
+      hasMore: true,
+      bookmarkedIds: new Set(),
+      storyViewerOpen: false,
+      setStoryViewerOpen: (open) => set({ storyViewerOpen: open }),
 
   loadFeed: async (reset = false, filter = "all", mediaType = "") => {
     const { page, loading, hasMore } = get();
@@ -186,4 +190,12 @@ export const usePostStore = create((set, get) => ({
       });
     }
   },
-}));
+}),
+  {
+    name: "buzz_feed_cache",
+    storage: createJSONStorage(() => AsyncStorage),
+    partialize: (state) => ({ posts: Array.isArray(state.posts) ? state.posts.slice(0, 35) : [] }),
+  }
+)
+);
+

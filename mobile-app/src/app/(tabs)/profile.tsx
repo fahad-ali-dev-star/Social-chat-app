@@ -465,7 +465,15 @@ export default function ProfileScreen() {
                 activeOpacity={0.85}
                 onPress={() => setSelectedVideo(item)}
               >
-                {mediaUri ? (
+                {mediaUri ? isVid ? (
+                  <Video
+                    source={{ uri: mediaUri }}
+                    style={styles.gridThumbImage}
+                    resizeMode={ResizeMode.COVER}
+                    shouldPlay={false}
+                    isMuted
+                  />
+                ) : (
                   <Image source={{ uri: mediaUri }} style={styles.gridThumbImage} resizeMode="cover" />
                 ) : (
                   <View style={styles.gridThumbFallback}>

@@ -22,6 +22,7 @@ const userSchema = new mongoose.Schema(
     blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     blockedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     isPrivate: { type: Boolean, default: false },
+    pushToken: { type: String, default: "" },
     notificationSettings: {
       likes: { type: Boolean, default: true },
       comments: { type: Boolean, default: true },

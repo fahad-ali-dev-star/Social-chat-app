@@ -278,3 +278,15 @@ export const respondToFollowRequest = async (req, res) => {
     res.json({ accepted: action === "accept" });
   } catch (err) { console.error("Failed to respond to follow request:", err); res.status(500).json({ message: "Failed to respond to follow request" }); }
 };
+
+export const updatePushToken = async (req, res) => {
+  try {
+    const { token } = req.body;
+    await User.findByIdAndUpdate(req.userId, { pushToken: token || "" });
+    res.json({ success: true, message: "Push token updated" });
+  } catch (err) {
+    console.error("Failed to update push token:", err);
+    res.status(500).json({ message: "Failed to update push token" });
+  }
+};
+

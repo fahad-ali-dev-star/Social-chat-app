@@ -12,6 +12,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { Redirect } from "expo-router";
 import { useAuthStore } from "../authStore";
+import { isBiometricsSupported, authenticateWithBiometrics } from "../utils/biometric";
 
 export default function AuthScreen() {
   const { user, loading, login, register, fetchMe } = useAuthStore();
@@ -24,9 +25,11 @@ export default function AuthScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
 
   useEffect(() => {
     fetchMe();
+    isBiometricsSupported().then((supported) => setBiometricAvailable(supported)).catch(() => {});
   }, []);
 
   if (loading) {
@@ -76,6 +79,16 @@ export default function AuthScreen() {
     }
   };
 
+  const handleBiometricUnlock = async () => {
+    setErrorMsg("");
+    const success = await authenticateWithBiometrics("Authenticate to unlock Buzz Chat");
+    if (success) {
+      await fetchMe();
+    } else {
+      setErrorMsg("Biometric verification failed.");
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
@@ -98,7 +111,7 @@ export default function AuthScreen() {
             />
             <TextInput
               style={styles.input}
-              placeholder="Choose Username"
+              placeholder="Username"
               placeholderTextColor="#64748b"
               value={username}
               onChangeText={setUsername}
@@ -117,7 +130,7 @@ export default function AuthScreen() {
         ) : (
           <TextInput
             style={styles.input}
-            placeholder="Username or Email"
+            placeholder="Email or Username"
             placeholderTextColor="#64748b"
             value={emailOrUsername}
             onChangeText={setEmailOrUsername}
@@ -160,6 +173,16 @@ export default function AuthScreen() {
             </Text>
           )}
         </TouchableOpacity>
+
+        {biometricAvailable && !isRegisterMode ? (
+          <TouchableOpacity
+            style={styles.biometricBtn}
+            onPress={handleBiometricUnlock}
+          >
+            <Ionicons name="finger-print" size={22} color="#6366f1" style={{ marginRight: 8 }} />
+            <Text style={styles.biometricBtnText}>Quick Unlock with Biometrics</Text>
+          </TouchableOpacity>
+        ) : null}
 
         <TouchableOpacity
           style={styles.toggleAuthBtn}
@@ -248,6 +271,22 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  biometricBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#1e1b4b",
+    borderWidth: 1,
+    borderColor: "#4f46e5",
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 12,
+  },
+  biometricBtnText: {
+    color: "#818cf8",
+    fontSize: 15,
+    fontWeight: "600",
   },
   toggleAuthBtn: {
     marginTop: 20,
