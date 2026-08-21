@@ -18,6 +18,7 @@ import api from "../api";
 import { useAuthStore } from "../authStore";
 import { usePostStore } from "../postStore";
 import VerifiedBadge from "./VerifiedBadge";
+import UserListModal from "./UserListModal";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const STORY_DURATION = 5000; // 5 seconds per image story
@@ -37,6 +38,9 @@ export default function StoryBar() {
   const [activeGroupIdx, setActiveGroupIdx] = useState<number | null>(null);
   const [activeStoryIdx, setActiveStoryIdx] = useState<number>(0);
   const [uploading, setUploading] = useState(false);
+  const [viewersModalOpen, setViewersModalOpen] = useState(false);
+  const [viewersList, setViewersList] = useState<any[]>([]);
+  const [loadingViewers, setLoadingViewers] = useState(false);
   const user = useAuthStore((s) => s.user);
   const setStoryViewerOpen = usePostStore((s) => s.setStoryViewerOpen);
 
@@ -144,6 +148,9 @@ export default function StoryBar() {
   useEffect(() => {
     if (activeGroupIdx !== null && currentStory) {
       startProgress();
+      if (!isMyStory && !currentStory.viewedByMe && currentStory._id) {
+        api.post(`/stories/${currentStory._id}/view`).catch(() => {});
+      }
     } else {
       // Viewer closed – reset
       if (progressAnimRef.current) {
@@ -153,6 +160,28 @@ export default function StoryBar() {
       progressAnim.setValue(0);
     }
   }, [activeGroupIdx, activeStoryIdx]);
+
+  const handleOpenViewers = async () => {
+    if (!currentStory?._id) return;
+    if (progressAnimRef.current) {
+      progressAnimRef.current.stop();
+    }
+    setViewersModalOpen(true);
+    setLoadingViewers(true);
+    try {
+      let list = (currentStory.views || []).map((v: any) => v.user || v).filter(Boolean);
+      const { data } = await api.get(`/stories/${currentStory._id}/viewers`);
+      if (Array.isArray(data.viewers)) {
+        list = data.viewers;
+      }
+      setViewersList(list);
+    } catch {
+      const list = (currentStory.views || []).map((v: any) => v.user || v).filter(Boolean);
+      setViewersList(list);
+    } finally {
+      setLoadingViewers(false);
+    }
+  };
 
   const handleNextStory = () => {
     if (!currentGroup) return;
@@ -423,11 +452,15 @@ export default function StoryBar() {
             {/* Bottom Footer: Like & View Count */}
             <View style={styles.viewerFooter}>
               {isMyStory && (
-                <View style={styles.viewsBadge}>
+                <TouchableOpacity
+                  style={styles.viewsBadge}
+                  onPress={handleOpenViewers}
+                  activeOpacity={0.8}
+                >
                   <Text style={styles.viewsText}>
                     👁️ {currentStory.views?.length || 0} views
                   </Text>
-                </View>
+                </TouchableOpacity>
               )}
 
               <TouchableOpacity
@@ -448,6 +481,14 @@ export default function StoryBar() {
           </View>
         </Modal>
       )}
+
+      {/* Story Viewers List Modal */}
+      <UserListModal
+        isOpen={viewersModalOpen}
+        title="Story Viewers"
+        users={viewersList}
+        onClose={() => setViewersModalOpen(false)}
+      />
     </View>
   );
 }
