@@ -447,11 +447,12 @@ function PostCard({ post, isVisible = false }: Props) {
           style={styles.actionBtn}
           onPress={() => toggleBookmark(post._id)}
           hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+          activeOpacity={0.7}
         >
           <Ionicons
             name={isBookmarked ? "bookmark" : "bookmark-outline"}
             size={24}
-            color={IG.text}
+            color={isBookmarked ? "#FACC15" : IG.secondary}
           />
         </TouchableOpacity>
       </View>

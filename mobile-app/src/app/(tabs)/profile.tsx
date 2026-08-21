@@ -26,6 +26,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import api from "../../api";
 import { useAuthStore } from "../../authStore";
+import { usePostStore } from "../../postStore";
 import { useSavedVideosStore } from "../../savedVideosStore";
 import PostCard from "../../components/PostCard";
 import VerifiedBadge from "../../components/VerifiedBadge";
@@ -65,7 +66,15 @@ export default function ProfileScreen() {
   const [savedPosts, setSavedPosts] = useState<any[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(false);
 
+  const bookmarkedIds = usePostStore((s) => s.bookmarkedIds);
   const { savedVideos, loadSaved } = useSavedVideosStore();
+
+  // Auto-remove unbookmarked posts from saved list without refetch
+  useEffect(() => {
+    if (savedPosts.length > 0) {
+      setSavedPosts((prev) => prev.filter((p) => bookmarkedIds.has(p._id)));
+    }
+  }, [bookmarkedIds]);
 
   const loadSavedPosts = async () => {
     setLoadingSaved(true);
