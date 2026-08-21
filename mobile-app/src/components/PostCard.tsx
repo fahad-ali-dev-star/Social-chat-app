@@ -296,6 +296,16 @@ function PostCard({ post, isVisible = false }: Props) {
                 {username}
               </Text>
               {post.author?.isVerified && <VerifiedBadge size={12} />}
+              {post.visibility === "followers" && (
+                <View style={styles.visibilityBadge}>
+                  <Text style={styles.visibilityBadgeText}>👥 Followers</Text>
+                </View>
+              )}
+              {post.visibility === "private" && (
+                <View style={styles.visibilityBadge}>
+                  <Text style={styles.visibilityBadgeText}>🔒 Private</Text>
+                </View>
+              )}
             </View>
           </View>
         </TouchableOpacity>
@@ -775,6 +785,20 @@ const styles = StyleSheet.create({
     color: IG.text,
     fontWeight: "600",
     fontSize: 14,
+  },
+  visibilityBadge: {
+    backgroundColor: "#1e1b4b",
+    borderWidth: 1,
+    borderColor: "#4f46e5",
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 6,
+  },
+  visibilityBadgeText: {
+    color: "#a5b4fc",
+    fontSize: 10,
+    fontWeight: "600",
   },
   moreBtn: {
     padding: 4,

@@ -22,6 +22,7 @@ interface Props {
 export default function CreatePostModal({ visible, onClose }: Props) {
   const [content, setContent] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [visibility, setVisibility] = useState<"public" | "followers" | "private">("public");
   const [uploading, setUploading] = useState(false);
   const createPost = usePostStore((s) => s.createPost);
 
@@ -78,11 +79,13 @@ export default function CreatePostModal({ visible, onClose }: Props) {
         content.trim(),
         uploadedMediaUrl,
         uploadedMediaUrl ? [uploadedMediaUrl] : [],
-        mediaType
+        mediaType,
+        visibility
       );
 
       setContent("");
       setSelectedImage(null);
+      setVisibility("public");
       onClose();
     } catch (err: any) {
       console.error("Failed to create post", err);
@@ -115,6 +118,35 @@ export default function CreatePostModal({ visible, onClose }: Props) {
               ) : (
                 <Text style={styles.publishText}>Post</Text>
               )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Audience Visibility Selector */}
+          <View style={styles.visibilityContainer}>
+            <Text style={styles.visibilityLabel}>Audience:</Text>
+            <TouchableOpacity
+              style={[styles.visibilityChip, visibility === "public" && styles.visibilityChipActive]}
+              onPress={() => setVisibility("public")}
+            >
+              <Text style={[styles.visibilityChipText, visibility === "public" && styles.visibilityChipTextActive]}>
+                🌐 Public
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.visibilityChip, visibility === "followers" && styles.visibilityChipActive]}
+              onPress={() => setVisibility("followers")}
+            >
+              <Text style={[styles.visibilityChipText, visibility === "followers" && styles.visibilityChipTextActive]}>
+                👥 Followers
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.visibilityChip, visibility === "private" && styles.visibilityChipActive]}
+              onPress={() => setVisibility("private")}
+            >
+              <Text style={[styles.visibilityChipText, visibility === "private" && styles.visibilityChipTextActive]}>
+                🔒 Only Me
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -249,5 +281,41 @@ const styles = StyleSheet.create({
     color: "#a5b4fc",
     fontWeight: "600",
     fontSize: 14,
+  },
+  visibilityContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#334155",
+    gap: 8,
+  },
+  visibilityLabel: {
+    color: "#94a3b8",
+    fontSize: 13,
+    fontWeight: "600",
+    marginRight: 4,
+  },
+  visibilityChip: {
+    backgroundColor: "#334155",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  visibilityChipActive: {
+    backgroundColor: "#312e81",
+    borderColor: "#6366f1",
+  },
+  visibilityChipText: {
+    color: "#94a3b8",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  visibilityChipTextActive: {
+    color: "#a5b4fc",
+    fontWeight: "700",
   },
 });
