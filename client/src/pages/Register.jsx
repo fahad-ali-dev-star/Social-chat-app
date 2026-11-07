@@ -10,7 +10,7 @@ function getPasswordStrength(pw) {
   if (/[0-9]/.test(pw)) score++;
   if (/[^A-Za-z0-9]/.test(pw)) score++;
   const labels = ["", "Weak", "Fair", "Good", "Strong"];
-  const colors = ["", "bg-red-500", "bg-amber-500", "bg-yellow-400", "bg-green-500"];
+  const colors = ["", "bg-rose-500", "bg-amber-500", "bg-blue-500", "bg-emerald-500"];
   return { score, label: labels[score] || "", color: colors[score] || "" };
 }
 
@@ -45,29 +45,26 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Ambient orbs */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-brand-600/20 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-blue-600/15 rounded-full blur-[120px]" />
-      </div>
-
-      <div className="w-full max-w-md animate-slide-up relative z-10 px-1 sm:px-0">
-        {/* Header */}
-        <div className="text-center mb-8">
-          {/* Avatar preview */}
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 text-2xl font-bold text-white"
-            style={{ background: "linear-gradient(135deg, #7c3aed, #2563eb)", boxShadow: "0 0 30px rgba(124,58,237,0.4)" }}>
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="w-full max-w-md animate-slide-up">
+        {/* Brand Header */}
+        <div className="text-center mb-6">
+          <div
+            className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-3 text-white font-black text-xl shadow-xs"
+            style={{ background: "var(--brand-gradient)" }}
+          >
             {initials}
           </div>
-          <h1 className="text-3xl font-bold text-white">Create account</h1>
-          <p className="text-gray-400 mt-1 text-sm">Join Nexus and connect with the world</p>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+            Join Buzz Chat
+          </h1>
+          <p className="text-slate-500 text-xs sm:text-sm mt-1">Create your profile and start connecting</p>
         </div>
 
         {/* Card */}
-        <div className="glass-lg rounded-3xl p-4 sm:p-8">
+        <div className="glass-lg p-6 sm:p-8">
           {error && (
-            <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm animate-fade-in">
+            <div className="mb-4 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-semibold animate-fade-in">
               <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
@@ -78,7 +75,7 @@ export default function Register() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1.5">Username</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Username</label>
                 <input
                   id="reg-username"
                   required
@@ -91,7 +88,7 @@ export default function Register() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1.5">Display Name</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Display Name</label>
                 <input
                   id="reg-displayname"
                   placeholder="John Doe"
@@ -103,7 +100,7 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Email address</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Email address</label>
               <input
                 id="reg-email"
                 type="email"
@@ -117,7 +114,7 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Password</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Password</label>
               <input
                 id="reg-password"
                 type="password"
@@ -136,17 +133,17 @@ export default function Register() {
                       <div
                         key={i}
                         className={`flex-1 rounded-full transition-all duration-300 ${
-                          i <= strength.score ? strength.color : "bg-white/10"
+                          i <= strength.score ? strength.color : "bg-slate-200 dark:bg-slate-700"
                         }`}
                       />
                     ))}
                   </div>
-                  <p className={`text-xs mt-1 font-medium ${
-                    strength.score === 4 ? "text-green-400" :
-                    strength.score >= 3 ? "text-yellow-400" :
-                    strength.score >= 2 ? "text-amber-400" : "text-red-400"
+                  <p className={`text-[11px] mt-1 font-semibold ${
+                    strength.score === 4 ? "text-emerald-500" :
+                    strength.score >= 3 ? "text-blue-500" :
+                    strength.score >= 2 ? "text-amber-500" : "text-rose-500"
                   }`}>
-                    {strength.label}
+                    {strength.label} password
                   </p>
                 </div>
               )}
@@ -155,20 +152,22 @@ export default function Register() {
             <button
               type="submit"
               disabled={loading}
-              className="btn-brand w-full py-3 mt-2"
+              className="btn-brand w-full py-2.5 mt-2 text-sm font-bold shadow-xs"
             >
               {loading ? (
-                <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 animate-spin mx-auto text-white" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                 </svg>
-              ) : "Create Account"}
+              ) : (
+                "Create Account"
+              )}
             </button>
           </form>
 
-          <p className="text-center text-sm text-gray-500 mt-6">
+          <p className="text-center text-xs text-slate-500 mt-6">
             Already have an account?{" "}
-            <Link to="/login" className="text-brand-400 hover:text-brand-300 font-semibold transition-colors">
+            <Link to="/login" className="text-brand-600 dark:text-brand-400 font-bold hover:underline">
               Sign in
             </Link>
           </p>

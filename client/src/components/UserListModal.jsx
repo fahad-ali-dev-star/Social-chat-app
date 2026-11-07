@@ -15,30 +15,30 @@ export default function UserListModal({ title, users, isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-      <div className="glass-lg w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border border-white/10 flex flex-col max-h-[80vh]">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+      <div className="glass-lg w-full max-w-md rounded-3xl overflow-hidden shadow-popover flex flex-col max-h-[80vh]">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-white/8 flex items-center justify-between">
-          <h3 className="text-base font-bold text-white capitalize">{title}</h3>
+        <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white capitalize">{title}</h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white p-1 rounded-full text-sm font-semibold"
+            className="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-xs font-bold"
           >
             ✕
           </button>
         </div>
 
         {/* List */}
-        <div className="p-4 overflow-y-auto space-y-3 flex-1">
+        <div className="p-3 overflow-y-auto space-y-1 flex-1">
           {users.length === 0 ? (
-            <p className="text-center text-gray-500 text-sm py-8">No users found.</p>
+            <p className="text-center text-slate-400 text-xs py-8">No users found.</p>
           ) : (
             users.map((u) => (
               <Link
                 key={u._id || u.id}
                 to={`/profile/${u.username}`}
                 onClick={onClose}
-                className="flex items-center justify-between p-3 rounded-2xl hover:bg-white/5 transition-all group"
+                className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all group"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <Avatar
@@ -49,16 +49,16 @@ export default function UserListModal({ title, users, isOpen, onClose }) {
                   />
                   <div className="min-w-0">
                     <div className="flex items-center gap-1 min-w-0">
-                      <p className="text-sm font-semibold text-white truncate group-hover:text-brand-400 transition-colors">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
                         {u.displayName || u.username}
                       </p>
                       {u.isVerified && <VerifiedBadge size="xs" />}
                     </div>
-                    <p className="text-xs text-gray-500 truncate">@{u.username}</p>
+                    <p className="text-[11px] text-slate-400 truncate">@{u.username}</p>
                   </div>
                 </div>
 
-                <span className="text-xs text-brand-400 font-medium px-3 py-1 rounded-full bg-brand-500/10 group-hover:bg-brand-500/20 transition-all">
+                <span className="text-xs text-brand-600 dark:text-brand-400 font-semibold px-3 py-1 rounded-full bg-brand-500/10 group-hover:bg-brand-500/20 transition-all">
                   Profile →
                 </span>
               </Link>

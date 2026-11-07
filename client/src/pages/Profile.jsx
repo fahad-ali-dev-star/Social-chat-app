@@ -99,11 +99,12 @@ export default function Profile() {
     e.preventDefault();
     setSaving(true);
     try {
-      const { data } = await api.put("/users/me", editForm);
-      setProfile((p) => ({ ...p, ...data.user }));
+      const { data } = await api.put("/users/profile", editForm);
+      setProfile(data.user);
       setEditing(false);
     } catch (err) {
-      console.error("Failed to save", err);
+      console.error("Failed to update profile", err);
+      alert(err.response?.data?.message || "Failed to update profile");
     } finally {
       setSaving(false);
     }
@@ -151,12 +152,12 @@ export default function Profile() {
 
   if (loading) return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <div className="glass rounded-3xl p-8 animate-pulse">
+      <div className="glass p-8 animate-pulse">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-24 h-24 rounded-full bg-white/10" />
-          <div className="h-5 w-40 bg-white/10 rounded" />
-          <div className="h-3 w-24 bg-white/8 rounded" />
-          <div className="h-3 w-56 bg-white/5 rounded" />
+          <div className="w-24 h-24 rounded-full bg-slate-200 dark:bg-slate-800" />
+          <div className="h-5 w-40 bg-slate-200 dark:bg-slate-800 rounded" />
+          <div className="h-3 w-24 bg-slate-100 dark:bg-slate-850 rounded" />
+          <div className="h-3 w-56 bg-slate-100 dark:bg-slate-850 rounded" />
         </div>
       </div>
     </div>
@@ -164,40 +165,39 @@ export default function Profile() {
 
   if (!profile) return (
     <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-      <p className="text-gray-500 text-lg">User not found.</p>
+      <p className="text-slate-500 text-base">User not found.</p>
     </div>
   );
 
   return (
-    <div className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-5">
-      {/* Profile Card */}
-      <div className="glass rounded-3xl overflow-hidden animate-fade-in">
+    <div className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-24 sm:pb-8 space-y-5">
+      {/* Profile Header Card */}
+      <div className="glass overflow-hidden animate-fade-in">
         {/* Banner */}
         <div
-          className="h-36 w-full relative bg-cover bg-center"
+          className="h-40 w-full relative bg-cover bg-center"
           style={{
             backgroundImage: profile.bannerUrl
               ? `url(${profile.bannerUrl})`
-              : `linear-gradient(135deg, hsl(${(profile.username.charCodeAt(0) * 7) % 360}, 60%, 25%), hsl(${(profile.username.charCodeAt(0) * 7 + 120) % 360}, 60%, 20%))`,
+              : "linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #2563eb 100%)",
           }}
         />
 
-        <div className="px-6 pb-6">
-          {/* Avatar + actions row */}
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 -mt-12 mb-4">
+        <div className="px-5 sm:px-6 pb-6">
+          {/* Avatar + Actions Row */}
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 -mt-10 sm:-mt-12 mb-4">
             <Avatar
               src={profile.avatarUrl}
               name={profile.displayName}
               username={profile.username}
               size="xl"
-              ring
-              className="border-4 border-surface-900"
+              className="border-4 border-white dark:border-slate-900 shadow-md ring-2 ring-black/5 dark:ring-white/10"
             />
             <div className="flex flex-wrap gap-2 mt-2">
               {isOwn ? (
                 <button
                   onClick={() => setEditing((e) => !e)}
-                  className="btn-ghost"
+                  className="btn-ghost text-xs px-4 py-2 font-semibold"
                 >
                   {editing ? "Cancel" : "Edit Profile"}
                 </button>
@@ -211,27 +211,23 @@ export default function Profile() {
                       selectConversation(conv);
                       navigate("/messages");
                     }}
-                    className="btn-ghost text-xs px-4 py-2 flex items-center gap-1.5"
+                    className="btn-ghost text-xs px-3.5 py-2 flex items-center gap-1.5 font-semibold"
                   >
                     💬 Message
                   </button>
                   <button
                     onClick={handleFollow}
                     disabled={followLoading}
-                    className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                      following
-                        ? "bg-white/10 text-gray-300 hover:bg-red-500/10 hover:text-red-400 border border-white/10"
-                        : "btn-brand"
-                    }`}
+                    className={following ? "btn-ghost text-xs px-4 py-2" : "btn-brand text-xs px-4 py-2"}
                   >
                     {followLoading ? (
-                      <svg className="w-4 h-4 animate-spin mx-auto" fill="none" viewBox="0 0 24 24">
+                      <svg className="w-3.5 h-3.5 animate-spin mx-auto" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                       </svg>
                     ) : following ? "Unfollow" : requested ? "Requested" : "Follow"}
                   </button>
-                  <button onClick={handleBlock} className="btn-ghost text-xs px-3 py-2 text-red-400">
+                  <button onClick={handleBlock} className="btn-ghost text-xs px-2.5 py-2 text-rose-500">
                     {blocked ? "Unblock" : "Block"}
                   </button>
                   {!blocked && <ReportButton targetType="user" targetId={profile._id} />}
@@ -240,40 +236,42 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Name + bio */}
+          {/* Name & Bio */}
           {editing ? (
-            <form onSubmit={handleSave} className="space-y-3 animate-fade-in">
+            <form onSubmit={handleSave} className="space-y-3.5 animate-fade-in pt-2">
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">Display Name</label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 block">Display Name</label>
                 <input
                   className="field"
                   value={editForm.displayName}
                   onChange={(e) => setEditForm((f) => ({ ...f, displayName: e.target.value }))}
-                  placeholder="Display Name"
+                  placeholder="Your Name"
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">Bio</label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 block">Bio</label>
                 <textarea
                   className="field resize-none"
                   rows={3}
                   value={editForm.bio}
                   onChange={(e) => setEditForm((f) => ({ ...f, bio: e.target.value }))}
-                  placeholder="Tell the world about yourself…"
+                  placeholder="Tell people about yourself…"
                   maxLength={280}
                 />
               </div>
-              <label className="flex items-center gap-3 text-xs text-gray-300 bg-white/5 rounded-xl px-3 py-3">
+              <label className="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-xl px-3.5 py-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={Boolean(editForm.isPrivate)}
                   onChange={(e) => setEditForm((f) => ({ ...f, isPrivate: e.target.checked }))}
-                  className="accent-brand-500"
+                  className="rounded text-brand-600 focus:ring-brand-500"
                 />
                 Private account — only approved followers can see posts
               </label>
+
+              {/* Upload Banner */}
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">Header Banner Cover</label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 block">Header Banner</label>
                 <input
                   ref={bannerFileRef}
                   type="file"
@@ -287,17 +285,19 @@ export default function Profile() {
                     htmlFor="banner-upload"
                     className={`btn-ghost text-xs cursor-pointer ${bannerUploading ? "opacity-50 pointer-events-none" : ""}`}
                   >
-                    {bannerUploading ? "Uploading Banner…" : "Upload Cover Banner"}
+                    {bannerUploading ? "Uploading…" : "Upload Banner"}
                   </label>
                   {editForm.bannerUrl && (
-                    <button type="button" onClick={() => setEditForm((f) => ({ ...f, bannerUrl: "" }))} className="text-xs text-red-400 hover:text-red-300">
-                      Remove Banner
+                    <button type="button" onClick={() => setEditForm((f) => ({ ...f, bannerUrl: "" }))} className="text-xs text-rose-500 hover:underline">
+                      Remove
                     </button>
                   )}
                 </div>
               </div>
+
+              {/* Upload Avatar */}
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">Profile Photo</label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 block">Avatar Photo</label>
                 <input
                   ref={avatarFileRef}
                   type="file"
@@ -308,49 +308,50 @@ export default function Profile() {
                 />
                 <div className="flex items-center gap-3">
                   {editForm.avatarUrl ? (
-                    <img src={editForm.avatarUrl} alt="Avatar" className="w-12 h-12 rounded-full object-cover border border-white/10" />
+                    <img src={editForm.avatarUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover border border-slate-200 dark:border-slate-700" />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-gray-500 text-xs">No photo</div>
+                    <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 text-xs">?</div>
                   )}
                   <label
                     htmlFor="avatar-upload"
                     className={`btn-ghost text-xs cursor-pointer ${avatarUploading ? "opacity-50 pointer-events-none" : ""}`}
                   >
-                    {avatarUploading ? "Uploading…" : "Upload Photo"}
+                    {avatarUploading ? "Uploading…" : "Upload Avatar"}
                   </label>
                   {editForm.avatarUrl && (
-                    <button type="button" onClick={() => setEditForm((f) => ({ ...f, avatarUrl: "" }))} className="text-xs text-red-400 hover:text-red-300">
+                    <button type="button" onClick={() => setEditForm((f) => ({ ...f, avatarUrl: "" }))} className="text-xs text-rose-500 hover:underline">
                       Remove
                     </button>
                   )}
                 </div>
               </div>
-              <button type="submit" disabled={saving || avatarUploading || bannerUploading} className="btn-brand">
+
+              <button type="submit" disabled={saving || avatarUploading || bannerUploading} className="btn-brand text-xs px-4 py-2">
                 {saving ? "Saving…" : "Save Changes"}
               </button>
             </form>
           ) : (
             <>
               <div className="flex items-center gap-1.5">
-                <h1 className="text-xl font-bold text-white">
+                <h1 className="text-xl font-extrabold text-slate-900 dark:text-white">
                   {profile.displayName || profile.username}
                 </h1>
                 {profile.isVerified === true && (
                   <VerifiedBadge size="md" />
                 )}
               </div>
-              <p className="text-sm text-gray-500">@{profile.username}</p>
+              <p className="text-xs font-medium text-slate-400">@{profile.username}</p>
               {profile.bio && (
-                <p className="text-sm text-gray-300 mt-2 leading-relaxed">{profile.bio}</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300 mt-2.5 leading-relaxed">{profile.bio}</p>
               )}
             </>
           )}
 
-          {/* Stats */}
-          <div className="flex flex-wrap gap-4 sm:gap-6 mt-4 pt-4 border-t border-white/8">
+          {/* Stats Bar */}
+          <div className="flex flex-wrap gap-6 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
             <div>
-              <p className="text-lg font-bold text-white">{posts.length}</p>
-              <p className="text-xs text-gray-500">Posts</p>
+              <p className="text-base font-bold text-slate-900 dark:text-white">{posts.length}</p>
+              <p className="text-xs text-slate-400">Posts</p>
             </div>
             <button
               onClick={() =>
@@ -362,8 +363,8 @@ export default function Profile() {
               }
               className="text-left hover:opacity-80 transition-opacity"
             >
-              <p className="text-lg font-bold text-white">{followersCount}</p>
-              <p className="text-xs text-brand-400 font-medium">Followers</p>
+              <p className="text-base font-bold text-slate-900 dark:text-white">{followersCount}</p>
+              <p className="text-xs font-semibold text-brand-600 dark:text-brand-400">Followers</p>
             </button>
             <button
               onClick={() =>
@@ -375,8 +376,8 @@ export default function Profile() {
               }
               className="text-left hover:opacity-80 transition-opacity"
             >
-              <p className="text-lg font-bold text-white">{profile.following?.length || 0}</p>
-              <p className="text-xs text-brand-400 font-medium">Following</p>
+              <p className="text-base font-bold text-slate-900 dark:text-white">{profile.following?.length || 0}</p>
+              <p className="text-xs font-semibold text-brand-600 dark:text-brand-400">Following</p>
             </button>
           </div>
         </div>
@@ -390,20 +391,24 @@ export default function Profile() {
         onClose={() => setUserModal({ open: false, title: "", users: [] })}
       />
 
-      {/* Posts */}
+      {/* User's Posts */}
       <div>
-        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 px-1">Posts</h2>
+        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-1">Posts</h2>
         {postsLoading ? (
           <div className="flex justify-center py-8">
-            <svg className="w-6 h-6 animate-spin text-brand-500" fill="none" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 animate-spin text-brand-500" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
             </svg>
           </div>
         ) : posts.length === 0 ? (
-          <div className="glass rounded-2xl p-10 text-center">
-            <div className="text-4xl mb-3">{profile.isPrivate && !following && !isOwn ? "🔒" : "📝"}</div>
-            <p className="text-gray-500 text-sm">{profile.isPrivate && !following && !isOwn ? "This account is private. Follow to see posts." : "No posts yet."}</p>
+          <div className="glass p-10 text-center">
+            <div className="text-3xl mb-2">{profile.isPrivate && !following && !isOwn ? "🔒" : "📝"}</div>
+            <p className="text-slate-500 text-xs">
+              {profile.isPrivate && !following && !isOwn
+                ? "This account is private. Follow to view posts."
+                : "No posts published yet."}
+            </p>
           </div>
         ) : (
           <div className="space-y-4">

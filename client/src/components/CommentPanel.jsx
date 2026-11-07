@@ -34,7 +34,6 @@ export default function CommentPanel({ postId, onCommentAdded }) {
   }, [postId]);
 
   useEffect(() => {
-    // Focus input when panel opens
     setTimeout(() => inputRef.current?.focus(), 100);
   }, []);
 
@@ -43,7 +42,10 @@ export default function CommentPanel({ postId, onCommentAdded }) {
     if (!text.trim() || submitting) return;
     setSubmitting(true);
     try {
-      const { data } = await api.post(`/posts/${postId}/comments`, { content: text.trim(), parentComment: replyTo?._id || null });
+      const { data } = await api.post(`/posts/${postId}/comments`, {
+        content: text.trim(),
+        parentComment: replyTo?._id || null,
+      });
       setComments((prev) => [...prev, data.comment]);
       setText("");
       setReplyTo(null);
@@ -65,13 +67,19 @@ export default function CommentPanel({ postId, onCommentAdded }) {
   const handleCommentLike = async (commentId) => {
     try {
       const { data } = await api.post(`/posts/${postId}/comments/${commentId}/like`);
-      setComments((prev) => prev.map((c) => c._id === commentId ? { ...c, _liked: data.liked, likesCount: data.likesCount } : c));
-    } catch (err) { console.error("Failed to like comment", err); }
+      setComments((prev) =>
+        prev.map((c) =>
+          c._id === commentId ? { ...c, _liked: data.liked, likesCount: data.likesCount } : c
+        )
+      );
+    } catch (err) {
+      console.error("Failed to like comment", err);
+    }
   };
 
   return (
     <div className="space-y-3">
-      {/* Comment list */}
+      {/* Comment List */}
       {loading ? (
         <div className="flex justify-center py-4">
           <svg className="w-5 h-5 animate-spin text-brand-500" fill="none" viewBox="0 0 24 24">
@@ -80,37 +88,68 @@ export default function CommentPanel({ postId, onCommentAdded }) {
           </svg>
         </div>
       ) : (
-        <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+        <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
           {comments.length === 0 ? (
-            <p className="text-xs text-gray-600 text-center py-3">No comments yet. Be the first!</p>
+            <p className="text-xs text-slate-400 text-center py-4">No comments yet. Start the conversation!</p>
           ) : (
             comments.filter((c) => !c.parentComment).map((c) => (
-              <div key={c._id} className="animate-fade-in">
+              <div key={c._id} className="animate-fade-in space-y-1.5">
                 <div className="flex gap-2.5">
                   <Avatar src={c.author?.avatarUrl} name={c.author?.displayName} username={c.author?.username} size="xs" />
-                  <div className="flex-1 bg-white/4 rounded-xl px-3 py-2">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-xs font-semibold text-gray-300">{c.author?.displayName || c.author?.username}{c.author?.isVerified && <VerifiedBadge size="xs" />}</span>
-                      <span className="text-[10px] text-gray-600">{formatDate(c.createdAt)}</span>
+                  <div className="flex-1 bg-slate-100/90 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/50 rounded-2xl px-3.5 py-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                          {c.author?.displayName || c.author?.username}
+                        </span>
+                        {c.author?.isVerified && <VerifiedBadge size="xs" />}
+                      </div>
+                      <span className="text-[10px] text-slate-400">{formatDate(c.createdAt)}</span>
                     </div>
-                    <p className="text-xs text-gray-300 mt-0.5 leading-relaxed whitespace-pre-wrap">{c.content}</p>
-                    <div className="flex gap-3 mt-2 text-[10px]">
-                      <button onClick={() => handleCommentLike(c._id)} className={c._liked ? "text-brand-400" : "text-gray-500 hover:text-gray-300"}>♥ {c.likesCount || 0}</button>
-                      <button onClick={() => { setReplyTo(c); inputRef.current?.focus(); }} className="text-gray-500 hover:text-gray-300">Reply</button>
-                      {String(c.author?._id) !== String(user?._id || user?.id) && <ReportButton targetType="comment" targetId={c._id} />}
+                    <p className="text-xs text-slate-700 dark:text-slate-200 mt-1 leading-relaxed whitespace-pre-wrap">{c.content}</p>
+                    <div className="flex items-center gap-3 mt-2 text-[11px] font-medium">
+                      <button
+                        onClick={() => handleCommentLike(c._id)}
+                        className={`flex items-center gap-1 ${c._liked ? "text-rose-500 font-bold" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"}`}
+                      >
+                        ♥ <span>{c.likesCount || 0}</span>
+                      </button>
+                      <button
+                        onClick={() => { setReplyTo(c); inputRef.current?.focus(); }}
+                        className="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400"
+                      >
+                        Reply
+                      </button>
+                      {String(c.author?._id) !== String(user?._id || user?.id) && (
+                        <ReportButton targetType="comment" targetId={c._id} />
+                      )}
                     </div>
                   </div>
                 </div>
-                <div className="ml-9 mt-1.5 space-y-1.5">
+
+                {/* Replies */}
+                <div className="ml-9 space-y-1.5 border-l-2 border-slate-100 dark:border-slate-800 pl-3">
                   {comments.filter((r) => String(r.parentComment?._id || r.parentComment) === String(c._id)).map((r) => (
                     <div key={r._id} className="flex gap-2">
                       <Avatar src={r.author?.avatarUrl} name={r.author?.displayName} username={r.author?.username} size="xs" />
-                      <div className="flex-1 bg-white/3 rounded-lg px-2.5 py-1.5">
-                        <span className="text-[10px] font-semibold text-gray-300">{r.author?.displayName || r.author?.username}</span>
-                        <p className="text-[11px] text-gray-400">{r.content}</p>
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => handleCommentLike(r._id)} className={r._liked ? "text-brand-400 text-[10px]" : "text-gray-600 text-[10px]"}>♥ {r.likesCount || 0}</button>
-                          {String(r.author?._id) !== String(user?._id || user?.id) && <ReportButton targetType="comment" targetId={r._id} />}
+                      <div className="flex-1 bg-slate-100/80 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/40 rounded-xl px-3 py-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-slate-900 dark:text-slate-100">
+                            {r.author?.displayName || r.author?.username}
+                          </span>
+                          <span className="text-[10px] text-slate-400">{formatDate(r.createdAt)}</span>
+                        </div>
+                        <p className="text-xs text-slate-700 dark:text-slate-300 mt-0.5">{r.content}</p>
+                        <div className="flex items-center gap-3 mt-1.5 text-[10px]">
+                          <button
+                            onClick={() => handleCommentLike(r._id)}
+                            className={r._liked ? "text-rose-500 font-bold" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"}
+                          >
+                            ♥ {r.likesCount || 0}
+                          </button>
+                          {String(r.author?._id) !== String(user?._id || user?.id) && (
+                            <ReportButton targetType="comment" targetId={r._id} />
+                          )}
                         </div>
                       </div>
                     </div>
@@ -122,22 +161,25 @@ export default function CommentPanel({ postId, onCommentAdded }) {
         </div>
       )}
 
+      {/* Reply Banner */}
       {replyTo && (
-        <div className="flex items-center justify-between rounded-lg bg-brand-500/10 border border-brand-500/20 px-3 py-2 text-[10px] text-brand-300">
-          Replying to @{replyTo.author?.username}
-          <button type="button" onClick={() => setReplyTo(null)} className="text-gray-500 hover:text-white">✕</button>
+        <div className="flex items-center justify-between rounded-xl bg-brand-500/10 border border-brand-500/20 px-3 py-1.5 text-xs text-brand-600 dark:text-brand-300 font-medium">
+          <span>Replying to @{replyTo.author?.username}</span>
+          <button type="button" onClick={() => setReplyTo(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xs font-bold">
+            ✕
+          </button>
         </div>
       )}
 
-      {/* Add comment */}
-      <form onSubmit={handleSubmit} className="flex gap-2 items-center">
+      {/* Comment Input */}
+      <form onSubmit={handleSubmit} className="flex gap-2.5 items-center">
         <Avatar
           src={user?.avatarUrl}
           name={user?.displayName}
           username={user?.username}
           size="xs"
         />
-        <div className="flex-1 flex items-center gap-2 bg-white/5 border border-white/8 rounded-xl px-3 py-2">
+        <div className="flex-1 flex items-center gap-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2">
           <input
             ref={inputRef}
             type="text"
@@ -146,12 +188,13 @@ export default function CommentPanel({ postId, onCommentAdded }) {
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
             maxLength={500}
-            className="flex-1 bg-transparent text-xs text-gray-200 placeholder-gray-600 outline-none"
+            className="flex-1 bg-transparent text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 outline-none"
           />
           <button
             type="submit"
             disabled={!text.trim() || submitting}
-            className="text-brand-400 hover:text-brand-300 disabled:text-gray-600 transition-colors flex-shrink-0"
+            className="text-brand-600 dark:text-brand-400 hover:opacity-80 disabled:opacity-30 transition-all flex-shrink-0"
+            title="Post comment"
           >
             {submitting ? (
               <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">

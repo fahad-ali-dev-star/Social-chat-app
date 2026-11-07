@@ -27,14 +27,14 @@ export default function SuggestedUsers() {
   };
 
   if (loading) return (
-    <div className="glass rounded-2xl p-4">
-      <div className="h-4 w-32 bg-white/8 rounded animate-pulse mb-4" />
+    <div className="glass p-4">
+      <div className="h-4 w-28 bg-slate-200 dark:bg-slate-800 rounded animate-pulse mb-4" />
       {[1, 2, 3].map((i) => (
         <div key={i} className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-full bg-white/8 animate-pulse" />
+          <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 animate-pulse" />
           <div className="flex-1">
-            <div className="h-3 w-24 bg-white/8 rounded animate-pulse mb-1" />
-            <div className="h-2.5 w-16 bg-white/5 rounded animate-pulse" />
+            <div className="h-3 w-24 bg-slate-200 dark:bg-slate-800 rounded animate-pulse mb-1" />
+            <div className="h-2.5 w-16 bg-slate-100 dark:bg-slate-850 rounded animate-pulse" />
           </div>
         </div>
       ))}
@@ -44,42 +44,42 @@ export default function SuggestedUsers() {
   if (users.length === 0) return null;
 
   return (
-    <div className="glass rounded-2xl p-4 animate-fade-in">
-      <h3 className="text-sm font-bold text-white mb-4">Who to Follow</h3>
+    <div className="glass p-4 animate-fade-in">
+      <div className="flex items-center justify-between mb-3.5">
+        <h3 className="text-sm font-bold text-slate-900 dark:text-white">Who to follow</h3>
+        <span className="text-[11px] text-slate-400 font-medium">Suggestions</span>
+      </div>
       <div className="space-y-3">
         {users.map((u) => {
           const isFollowing = following[u._id];
           return (
-            <div key={u._id} className="flex items-center gap-3 group">
-              <Link to={`/profile/${u.username}`}>
+            <div key={u._id} className="flex items-center gap-3 group justify-between">
+              <Link to={`/profile/${u.username}`} className="flex items-center gap-2.5 min-w-0 flex-1">
                 <Avatar
                   src={u.avatarUrl}
                   name={u.displayName}
                   username={u.username}
                   size="sm"
-                  className="group-hover:scale-105 transition-transform"
                 />
-              </Link>
-              <div className="flex-1 min-w-0">
-                <Link to={`/profile/${u.username}`}>
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-200 truncate hover:text-brand-400 transition-colors leading-tight">
+                    <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
                       {u.displayName || u.username}
                     </p>
                     {u.isVerified && <VerifiedBadge size="xs" />}
                   </div>
-                  <p className="text-xs text-gray-500 truncate">@{u.username}</p>
-                </Link>
-              </div>
+                  <p className="text-[11px] text-slate-400 truncate">@{u.username}</p>
+                </div>
+              </Link>
               <button
                 onClick={() => handleFollow(u._id)}
-                className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all duration-200 ${
+                className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all ${
                   isFollowing
-                    ? "bg-white/8 text-gray-400 hover:bg-red-500/10 hover:text-red-400"
-                    : "btn-brand py-1.5 px-3"
+                    ? "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:text-rose-500"
+                    : "btn-brand text-xs py-1 px-3"
                 }`}
               >
-                {isFollowing ? "Unfollow" : "Follow"}
+                {isFollowing ? "Following" : "Follow"}
               </button>
             </div>
           );

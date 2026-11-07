@@ -8,19 +8,23 @@ import {
   SafeAreaView,
   RefreshControl,
 } from "react-native";
+import { useIsFocused } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import api from "../../api";
 import PostCard from "../../components/PostCard";
 
 export default function BookmarksScreen() {
+  const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const paddingTop = Math.max(insets.top, 12);
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    loadBookmarks();
-  }, []);
+    if (isFocused) {
+      loadBookmarks();
+    }
+  }, [isFocused]);
 
   const loadBookmarks = async () => {
     setLoading(true);

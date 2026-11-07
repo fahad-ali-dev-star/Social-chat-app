@@ -143,3 +143,21 @@ export const toggleLikeStory = async (req, res) => {
     res.status(500).json({ message: "Failed to toggle story like" });
   }
 };
+
+export const getStoryViewers = async (req, res) => {
+  try {
+    const { storyId } = req.params;
+    const story = await Story.findById(storyId).populate("views.user", "username displayName avatarUrl isVerified");
+    if (!story) return res.status(404).json({ message: "Story not found" });
+
+    if (story.user.toString() !== req.userId) {
+      return res.status(403).json({ message: "Not authorized to view story viewers" });
+    }
+
+    const viewers = story.views.map((v) => v.user).filter(Boolean);
+    res.json({ viewers });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch story viewers" });
+  }
+};
+
