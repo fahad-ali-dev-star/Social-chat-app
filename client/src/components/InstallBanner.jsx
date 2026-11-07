@@ -70,21 +70,21 @@ export default function InstallBanner() {
         <img src="/logo192.png" alt="Buzz Chat" className="w-12 h-12 rounded-2xl flex-shrink-0" />
 
         <div className="flex-1 min-w-0">
-          <p className="text-white font-semibold text-sm leading-tight">Install Buzz Chat</p>
+          <p className="text-slate-900 dark:text-white font-bold text-sm leading-tight">Install Buzz Chat</p>
           {showIOSGuide ? (
-            <p className="text-gray-400 text-xs mt-1 leading-relaxed">
+            <p className="text-slate-500 text-xs mt-1 leading-relaxed">
               Tap the{" "}
-              <span className="inline-flex items-center gap-0.5 text-gray-300">
+              <span className="inline-flex items-center gap-0.5 text-slate-700 dark:text-slate-300">
                 <svg width="12" height="14" viewBox="0 0 24 28" fill="currentColor">
                   <path d="M12 1L7 6h3.5v10h3V6H17L12 1zm-8 16v8h16v-8h-2v6H6v-6H4z"/>
                 </svg>
                 Share
               </span>{" "}
-              button then <strong className="text-gray-200">"Add to Home Screen"</strong>
+              button then <strong className="text-slate-800 dark:text-slate-200">"Add to Home Screen"</strong>
             </p>
           ) : (
-            <p className="text-gray-400 text-xs mt-1">
-              Get the full app experience — works offline too!
+            <p className="text-slate-500 text-xs mt-1">
+              Add Buzz Chat to your home screen for quick access.
             </p>
           )}
         </div>

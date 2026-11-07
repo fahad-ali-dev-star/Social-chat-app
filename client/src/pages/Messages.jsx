@@ -308,70 +308,71 @@ export default function Messages() {
     <>
       <style>{`
         /* ════ CSS variables for theming ════ */
-        :root {
-          --ig-bg:         #000;
-          --ig-bg-card:    #1a1a1a;
-          --ig-bg-hover:   #111;
-          --ig-bg-alt:     #0d0d0d;
-          --ig-border:     #1a1a1a;
-          --ig-border-md:  #333;
-          --ig-text:       #fff;
-          --ig-text-sub:   #555;
-          --ig-text-meta:  #888;
-          --ig-bubble-in:  #262626;
-          --ig-bubble-in-text: #fff;
-          --ig-input-bg:   #1a1a1a;
-          --ig-input-border: #333;
-          --ig-input-focus: #555;
-          --ig-input-ph:   #555;
-          --ig-shadow:     rgba(0,0,0,0.6);
-          --ig-shadow-lg:  rgba(0,0,0,0.7);
-          --ig-online-border: #000;
+        :root, html.dark {
+          --ig-bg:         #0b0f19;
+          --ig-bg-card:    #0f172a;
+          --ig-bg-hover:   #1e293b;
+          --ig-bg-alt:     #131b2e;
+          --ig-border:     #1e293b;
+          --ig-border-md:  #334155;
+          --ig-text:       #f8fafc;
+          --ig-text-sub:   #94a3b8;
+          --ig-text-meta:  #64748b;
+          --ig-bubble-in:  #1e293b;
+          --ig-bubble-in-text: #f8fafc;
+          --ig-input-bg:   #1e293b;
+          --ig-input-border: #334155;
+          --ig-input-focus: var(--accent-color, #7c3aed);
+          --ig-input-ph:   #64748b;
+          --ig-shadow:     rgba(0,0,0,0.3);
+          --ig-shadow-lg:  rgba(0,0,0,0.5);
+          --ig-online-border: #0f172a;
         }
-        html.light-mode {
-          --ig-bg:         #fafafa;
-          --ig-bg-card:    #fff;
-          --ig-bg-hover:   #f2f2f2;
-          --ig-bg-alt:     #f7f7f7;
-          --ig-border:     #dbdbdb;
-          --ig-border-md:  #dbdbdb;
-          --ig-text:       #262626;
-          --ig-text-sub:   #8e8e8e;
-          --ig-text-meta:  #aaa;
-          --ig-bubble-in:  #efefef;
-          --ig-bubble-in-text: #262626;
-          --ig-input-bg:   #fff;
-          --ig-input-border: #dbdbdb;
-          --ig-input-focus: #aaa;
-          --ig-input-ph:   #aaa;
-          --ig-shadow:     rgba(0,0,0,0.12);
-          --ig-shadow-lg:  rgba(0,0,0,0.15);
-          --ig-online-border: #fafafa;
+        html.light-mode, html.light {
+          --ig-bg:         #ffffff;
+          --ig-bg-card:    #f8fafc;
+          --ig-bg-hover:   #f1f5f9;
+          --ig-bg-alt:     #f1f5f9;
+          --ig-border:     #e2e8f0;
+          --ig-border-md:  #cbd5e1;
+          --ig-text:       #0f172a;
+          --ig-text-sub:   #475569;
+          --ig-text-meta:  #94a3b8;
+          --ig-bubble-in:  #e2e8f0;
+          --ig-bubble-in-text: #0f172a;
+          --ig-input-bg:   #ffffff;
+          --ig-input-border: #cbd5e1;
+          --ig-input-focus: var(--accent-color, #7c3aed);
+          --ig-input-ph:   #94a3b8;
+          --ig-shadow:     rgba(0,0,0,0.06);
+          --ig-shadow-lg:  rgba(0,0,0,0.1);
+          --ig-online-border: #ffffff;
         }
 
         .ig-sidebar { background: var(--ig-bg); }
         .ig-chat    { background: var(--ig-bg-card); }
 
         .ig-bubble-out {
-          background: linear-gradient(135deg, #c13584 0%, #e1306c 35%, #f77737 70%, #fcaf45 100%);
+          background: var(--brand-gradient, linear-gradient(135deg, #7c3aed, #4f46e5));
           color: #fff;
-          border-radius: 22px 22px 4px 22px;
+          border-radius: 20px 20px 4px 20px;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
-        .ig-bubble-out.tail-less { border-radius: 22px 22px 4px 22px; }
-        .ig-bubble-out.first    { border-radius: 22px 22px 4px 22px; }
-        .ig-bubble-out.middle   { border-radius: 22px 4px 4px 22px; }
-        .ig-bubble-out.last     { border-radius: 22px 22px 4px 22px; }
-        .ig-bubble-out.solo     { border-radius: 22px 22px 4px 22px; }
+        .ig-bubble-out.tail-less { border-radius: 20px 20px 4px 20px; }
+        .ig-bubble-out.first    { border-radius: 20px 20px 4px 20px; }
+        .ig-bubble-out.middle   { border-radius: 20px 4px 4px 20px; }
+        .ig-bubble-out.last     { border-radius: 20px 20px 4px 20px; }
+        .ig-bubble-out.solo     { border-radius: 20px 20px 4px 20px; }
 
         .ig-bubble-in {
           background: var(--ig-bubble-in);
           color: var(--ig-bubble-in-text);
-          border-radius: 22px 22px 22px 4px;
+          border-radius: 20px 20px 20px 4px;
         }
-        .ig-bubble-in.first  { border-radius: 22px 22px 22px 4px; }
-        .ig-bubble-in.middle { border-radius: 4px 22px 22px 4px; }
-        .ig-bubble-in.last   { border-radius: 4px 22px 22px 22px; }
-        .ig-bubble-in.solo   { border-radius: 22px 22px 22px 4px; }
+        .ig-bubble-in.first  { border-radius: 20px 20px 20px 4px; }
+        .ig-bubble-in.middle { border-radius: 4px 20px 20px 4px; }
+        .ig-bubble-in.last   { border-radius: 4px 20px 20px 20px; }
+        .ig-bubble-in.solo   { border-radius: 20px 20px 20px 4px; }
 
         .ig-input {
           background: var(--ig-input-bg);
@@ -408,6 +409,16 @@ export default function Messages() {
         .ig-icon-btn:hover { background: var(--ig-bg-hover); }
 
         .ig-send-btn {
+          background: transparent;
+          border: none;
+          color: var(--accent-color, #7c3aed);
+          font-weight: 700;
+          font-size: 14px;
+          cursor: pointer;
+          padding: 0 4px;
+          flex-shrink: 0;
+          transition: opacity 0.15s;
+        }
           background: transparent;
           border: none;
           color: #0095f6;
@@ -614,6 +625,11 @@ export default function Messages() {
               }
               #ig-chat-pane {
                 display: flex !important;
+              }
+            }
+            @media (max-width: 639px) {
+              #ig-sidebar, #ig-chat-pane {
+                padding-bottom: 56px;
               }
             }
           `}</style>

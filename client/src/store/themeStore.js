@@ -52,11 +52,16 @@ function applyTheme(isDark, accent) {
   root.style.setProperty("--brand-gradient", theme.gradient);
   root.style.setProperty("--glow-brand", theme.glow);
   root.style.setProperty("--accent-color", theme.color);
+  root.style.setProperty("--brand-primary", theme.color);
 
   if (isDark) {
-    root.classList.remove("light-mode");
+    root.classList.add("dark");
+    root.classList.remove("light-mode", "light");
+    root.style.colorScheme = "dark";
   } else {
-    root.classList.add("light-mode");
+    root.classList.remove("dark");
+    root.classList.add("light-mode", "light");
+    root.style.colorScheme = "light";
   }
 
   localStorage.setItem("theme_dark", isDark ? "1" : "0");

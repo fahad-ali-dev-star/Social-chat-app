@@ -41,7 +41,7 @@ export default function StoryBar() {
   const myGroup = myGroupIndex !== -1 ? storyGroups[myGroupIndex] : null;
 
   return (
-    <div className="glass rounded-2xl p-4 mb-4 overflow-x-auto no-scrollbar flex items-center gap-4">
+    <div className="glass p-3.5 sm:p-4 mb-4 overflow-x-auto scrollbar-none flex items-center gap-4">
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
@@ -52,7 +52,7 @@ export default function StoryBar() {
       />
 
       {/* Add / View My Story Circle */}
-      <div className="flex flex-col items-center justify-center text-center gap-1 flex-shrink-0 cursor-pointer group">
+      <div className="flex flex-col items-center justify-center text-center gap-1.5 flex-shrink-0 cursor-pointer group">
         <div
           onClick={() => {
             if (myGroup && myGroup.stories.length > 0) {
@@ -61,12 +61,12 @@ export default function StoryBar() {
               fileInputRef.current?.click();
             }
           }}
-          className={`relative w-16 h-16 rounded-full p-[3px] transition-transform duration-200 group-hover:scale-105 ${
+          className={`relative w-15 h-15 rounded-full p-[2.5px] transition-transform duration-200 group-hover:scale-105 ${
             myGroup && myGroup.stories.length > 0
               ? myGroup.hasUnviewed
-                ? "bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888]"
-                : "bg-surface-700"
-              : "border-2 border-dashed border-brand-500/50"
+                ? "bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-600"
+                : "bg-slate-300 dark:bg-slate-700"
+              : "border-2 border-dashed border-brand-500/60"
           }`}
         >
           <Avatar
@@ -74,7 +74,7 @@ export default function StoryBar() {
             name={currentUser?.displayName}
             username={currentUser?.username}
             size="lg"
-            className="w-full h-full rounded-full border-[3px] border-surface-900 object-cover"
+            className="w-full h-full rounded-full border-2 border-white dark:border-slate-900 object-cover"
           />
 
           {/* Plus Badge */}
@@ -84,13 +84,13 @@ export default function StoryBar() {
               fileInputRef.current?.click();
             }}
             disabled={uploading}
-            className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-bold border-2 border-surface-900 shadow-md"
+            className="absolute bottom-0 right-0 w-5 h-5 rounded-full btn-brand text-white flex items-center justify-center text-xs font-bold border-2 border-white dark:border-slate-900 shadow-xs"
             title="Add new story"
           >
             {uploading ? "…" : "+"}
           </button>
         </div>
-        <span className="text-[11px] text-gray-300 font-medium text-center truncate max-w-[68px]">
+        <span className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[68px]">
           Your Story
         </span>
       </div>
@@ -98,20 +98,20 @@ export default function StoryBar() {
       {/* Other Users' Stories */}
       {storyGroups.map((group, idx) => {
         if (group.user?._id === currentUser?.id || group.user === currentUser?.id) {
-          return null; // Skip current user (already rendered first)
+          return null;
         }
 
         return (
           <div
             key={group.user._id}
             onClick={() => openViewer(idx)}
-            className="flex flex-col items-center justify-center text-center gap-1 flex-shrink-0 cursor-pointer group"
+            className="flex flex-col items-center justify-center text-center gap-1.5 flex-shrink-0 cursor-pointer group"
           >
             <div
-              className={`w-16 h-16 rounded-full p-[3px] transition-transform duration-200 group-hover:scale-105 ${
+              className={`w-15 h-15 rounded-full p-[2.5px] transition-transform duration-200 group-hover:scale-105 ${
                 group.hasUnviewed
-                  ? "bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888]"
-                  : "bg-surface-700"
+                  ? "bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-600"
+                  : "bg-slate-300 dark:bg-slate-700"
               }`}
             >
               <Avatar
@@ -119,10 +119,10 @@ export default function StoryBar() {
                 name={group.user?.displayName}
                 username={group.user?.username}
                 size="lg"
-                className="w-full h-full rounded-full border-[3px] border-surface-900 object-cover"
+                className="w-full h-full rounded-full border-2 border-white dark:border-slate-900 object-cover"
               />
             </div>
-            <span className="text-[11px] text-gray-300 font-medium text-center truncate max-w-[68px]">
+            <span className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[68px]">
               {group.user?.displayName || group.user?.username}
             </span>
           </div>
