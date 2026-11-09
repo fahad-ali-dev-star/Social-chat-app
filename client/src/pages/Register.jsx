@@ -50,10 +50,14 @@ export default function Register() {
         {/* Brand Header */}
         <div className="text-center mb-6">
           <div
-            className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-3 text-white font-black text-xl shadow-xs"
-            style={{ background: "var(--brand-gradient)" }}
+            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-3 text-white font-black text-xl shadow-md overflow-hidden select-none"
+            style={{ background: formData.displayName ? "var(--brand-gradient)" : "transparent" }}
           >
-            {initials}
+            {formData.displayName.trim() ? (
+              initials
+            ) : (
+              <img src="/logo.svg" alt="BuzzChat Logo" className="w-full h-full object-cover" onError={(e) => { e.target.src = "/logo192.png"; }} />
+            )}
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
             Join Buzz Chat
