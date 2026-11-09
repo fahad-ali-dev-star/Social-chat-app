@@ -122,6 +122,8 @@ export default function StoryViewerModal() {
           <img
             src={currentStory.mediaUrl}
             alt="Story"
+            width="390"
+            height="692"
             className="w-full h-full object-cover"
           />
 

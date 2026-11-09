@@ -308,7 +308,7 @@ export default function Profile() {
                 />
                 <div className="flex items-center gap-3">
                   {editForm.avatarUrl ? (
-                    <img src={editForm.avatarUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover border border-slate-200 dark:border-slate-700" />
+                    <img src={editForm.avatarUrl} alt="Avatar" width="40" height="40" className="w-10 h-10 rounded-full object-cover border border-slate-200 dark:border-slate-700" />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 text-xs">?</div>
                   )}

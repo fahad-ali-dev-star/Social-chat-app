@@ -52,6 +52,8 @@ const LogoIcon = () => (
     <img
       src="/logo.svg"
       alt="BuzzChat Logo"
+      width="36"
+      height="36"
       className="w-full h-full object-cover"
       onError={(e) => {
         e.target.src = "/logo192.png";

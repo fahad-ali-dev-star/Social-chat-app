@@ -67,7 +67,7 @@ export default function InstallBanner() {
 
       <div className="glass-lg rounded-2xl p-4 flex items-start gap-3 shadow-2xl">
         {/* App Icon */}
-        <img src="/logo192.png" alt="Buzz Chat" className="w-12 h-12 rounded-2xl flex-shrink-0" />
+        <img src="/logo192.png" alt="Buzz Chat" width="48" height="48" className="w-12 h-12 rounded-2xl flex-shrink-0" />
 
         <div className="flex-1 min-w-0">
           <p className="text-slate-900 dark:text-white font-bold text-sm leading-tight">Install Buzz Chat</p>

@@ -54,6 +54,8 @@ export default function Avatar({
           <img
             src={src}
             alt={name || username}
+            width="100%"
+            height="100%"
             className="w-full h-full object-cover rounded-full block flex-shrink-0"
             onError={(e) => { e.target.style.display = "none"; }}
           />

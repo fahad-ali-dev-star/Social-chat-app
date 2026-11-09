@@ -414,6 +414,8 @@ export default function PostCard({ post, myUserId }) {
                 <img
                   src={mediaList[0]}
                   alt="Post media"
+                  width="800"
+                  height="500"
                   loading="lazy"
                   className={`w-full max-h-[500px] ${
                     viewFit === "cover" ? "object-cover" : "object-contain"
@@ -435,6 +437,8 @@ export default function PostCard({ post, myUserId }) {
                         <img
                           src={url}
                           alt="Post media"
+                          width="800"
+                          height="500"
                           loading="lazy"
                           className={`w-full max-h-[500px] ${
                             viewFit === "cover" ? "object-cover" : "object-contain"

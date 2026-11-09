@@ -56,7 +56,7 @@ export default function Register() {
             {formData.displayName.trim() ? (
               initials
             ) : (
-              <img src="/logo.svg" alt="BuzzChat Logo" className="w-full h-full object-cover" onError={(e) => { e.target.src = "/logo192.png"; }} />
+              <img src="/logo.svg" alt="BuzzChat Logo" width="64" height="64" className="w-full h-full object-cover" onError={(e) => { e.target.src = "/logo192.png"; }} />
             )}
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">

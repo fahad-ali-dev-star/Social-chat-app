@@ -157,6 +157,8 @@ export default function CreatePostBox() {
                     <img
                       src={mediaUrls[activePreviewIdx || 0]}
                       alt="Preview"
+                      width="800"
+                      height="360"
                       className={`w-full max-h-[360px] ${
                         mediaFit === "cover" ? "object-cover" : "object-contain"
                       }`}

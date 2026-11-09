@@ -78,6 +78,8 @@ function MsgAvatar({ src, name, username, size = 40 }) {
         <img
           src={src}
           alt={key}
+          width="100%"
+          height="100%"
           style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center", display: "block" }}
           onError={(e) => { e.target.style.display = "none"; }}
         />
@@ -984,6 +986,8 @@ export default function Messages() {
                                       <img
                                         src={msg.mediaUrl}
                                         alt="attachment"
+                                        width="800"
+                                        height="240"
                                         style={{ borderRadius: 12, maxHeight: 240, width: "100%", objectFit: "cover", marginBottom: msg.body ? 8 : 0, cursor: "pointer" }}
                                         onClick={() => window.open(msg.mediaUrl, "_blank")}
                                       />
@@ -1146,7 +1150,7 @@ export default function Messages() {
                     </div>
                   ) : mediaType === "image" ? (
                     <div style={{ position: "relative" }}>
-                      <img src={mediaUrl} alt="preview" style={{ width: 60, height: 60, borderRadius: 12, objectFit: "cover", border: "2px solid var(--ig-border-md)" }} />
+                      <img src={mediaUrl} alt="preview" width="60" height="60" style={{ width: 60, height: 60, borderRadius: 12, objectFit: "cover", border: "2px solid var(--ig-border-md)" }} />
                       <button
                         onClick={() => { setMediaUrl(""); setMediaType(""); }}
                         style={{
