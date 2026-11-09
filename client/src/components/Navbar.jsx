@@ -198,7 +198,7 @@ export default function Navbar() {
   return (
     <>
       <header className="sticky top-0 z-40 w-full border-b backdrop-blur-md transition-colors bg-white/90 dark:bg-slate-900/90 border-slate-200 dark:border-slate-800/80 shadow-xs">
-        <div className="max-w-6xl mx-auto px-4 h-15 flex items-center justify-between gap-3">
+        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
           {/* Logo */}
           <NavLink to="/" className="flex items-center gap-2.5 group flex-shrink-0">
             <LogoIcon />

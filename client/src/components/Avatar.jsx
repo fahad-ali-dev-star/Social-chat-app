@@ -53,12 +53,14 @@ export default function Avatar({
   const pixelSize = SIZE_PIXELS[size] || 40;
 
   return (
-    <div className="relative inline-block flex-shrink-0 self-start">
+    <div
+      className={`relative inline-flex items-center justify-center flex-shrink-0 select-none ${sizeClass} ${className}`}
+      aria-label={name || username}
+    >
       <div
-        className={`${sizeClass} aspect-square rounded-full overflow-hidden bg-gradient-to-br ${gradient} flex items-center justify-center font-bold text-white flex-shrink-0 select-none ${
+        className={`w-full h-full aspect-square rounded-full overflow-hidden bg-gradient-to-br ${gradient} flex items-center justify-center font-bold text-white flex-shrink-0 ${
           ring ? "ring-2 ring-brand-500/70 ring-offset-2 ring-offset-white dark:ring-offset-slate-900" : ""
-        } ${className}`}
-        aria-label={name || username}
+        }`}
       >
         {src ? (
           <img
@@ -68,7 +70,8 @@ export default function Avatar({
             height={pixelSize}
             loading="eager"
             decoding="async"
-            className="w-full h-full object-cover rounded-full block flex-shrink-0"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            className="w-full h-full object-cover rounded-full block flex-shrink-0 pointer-events-none"
             onError={(e) => { e.target.style.display = "none"; }}
           />
         ) : (
@@ -78,7 +81,7 @@ export default function Avatar({
 
       {isOnline && (
         <span
-          className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 shadow-xs"
+          className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 shadow-xs pointer-events-none"
           title="Online"
         />
       )}

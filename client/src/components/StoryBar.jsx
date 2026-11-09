@@ -61,7 +61,7 @@ export default function StoryBar() {
               fileInputRef.current?.click();
             }
           }}
-          className={`relative w-15 h-15 rounded-full p-[2.5px] transition-transform duration-200 group-hover:scale-105 ${
+          className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-full p-[2.5px] flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105 ${
             myGroup && myGroup.stories.length > 0
               ? myGroup.hasUnviewed
                 ? "bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-600"
@@ -108,7 +108,7 @@ export default function StoryBar() {
             className="flex flex-col items-center justify-center text-center gap-1.5 flex-shrink-0 cursor-pointer group"
           >
             <div
-              className={`w-15 h-15 rounded-full p-[2.5px] transition-transform duration-200 group-hover:scale-105 ${
+              className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full p-[2.5px] flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105 ${
                 group.hasUnviewed
                   ? "bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-600"
                   : "bg-slate-300 dark:bg-slate-700"
