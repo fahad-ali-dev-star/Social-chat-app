@@ -151,13 +151,19 @@ export default function Profile() {
   };
 
   if (loading) return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
-      <div className="glass p-8 animate-pulse">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-24 h-24 rounded-full bg-slate-200 dark:bg-slate-800" />
-          <div className="h-5 w-40 bg-slate-200 dark:bg-slate-800 rounded" />
-          <div className="h-3 w-24 bg-slate-100 dark:bg-slate-850 rounded" />
-          <div className="h-3 w-56 bg-slate-100 dark:bg-slate-850 rounded" />
+    <div className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-24 sm:pb-8 space-y-5">
+      <div className="glass overflow-hidden animate-pulse">
+        <div className="h-40 w-full bg-slate-200 dark:bg-slate-800" />
+        <div className="px-5 sm:px-6 pb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-3 -mt-10 sm:-mt-12 mb-4">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-slate-300 dark:bg-slate-700 border-4 border-white dark:border-slate-900 shadow-md flex-shrink-0" />
+            <div className="h-8 w-24 bg-slate-200 dark:bg-slate-800 rounded-lg mt-2" />
+          </div>
+          <div className="space-y-2">
+            <div className="h-5 w-40 bg-slate-200 dark:bg-slate-800 rounded" />
+            <div className="h-3 w-24 bg-slate-100 dark:bg-slate-850 rounded" />
+            <div className="h-3 w-56 bg-slate-100 dark:bg-slate-850 rounded" />
+          </div>
         </div>
       </div>
     </div>
@@ -185,7 +191,7 @@ export default function Profile() {
 
         <div className="px-5 sm:px-6 pb-6">
           {/* Avatar + Actions Row */}
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 -mt-10 sm:-mt-12 mb-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-3 -mt-10 sm:-mt-12 mb-4">
             <Avatar
               src={profile.avatarUrl}
               name={profile.displayName}
