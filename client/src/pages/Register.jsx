@@ -51,9 +51,9 @@ export default function Register() {
         <div className="text-center mb-6">
           <div
             className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-3 text-white font-black text-xl shadow-md overflow-hidden select-none"
-            style={{ background: formData.displayName ? "var(--brand-gradient)" : "transparent" }}
+            style={{ background: form.displayName ? "var(--brand-gradient)" : "transparent" }}
           >
-            {formData.displayName.trim() ? (
+            {form.displayName.trim() ? (
               initials
             ) : (
               <img src="/logo.svg" alt="BuzzChat Logo" width="64" height="64" className="w-full h-full object-cover" onError={(e) => { e.target.src = "/logo192.png"; }} />
