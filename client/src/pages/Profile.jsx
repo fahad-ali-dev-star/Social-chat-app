@@ -165,7 +165,7 @@ export default function Profile() {
 
   if (!profile) return (
     <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-      <p className="text-slate-500 text-base">User not found.</p>
+      <p className="text-slate-600 dark:text-slate-400 text-base">User not found.</p>
     </div>
   );
 
@@ -310,7 +310,7 @@ export default function Profile() {
                   {editForm.avatarUrl ? (
                     <img src={editForm.avatarUrl} alt="Avatar" width="40" height="40" className="w-10 h-10 rounded-full object-cover border border-slate-200 dark:border-slate-700" />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500 text-xs">?</div>
+                    <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 text-xs font-bold">?</div>
                   )}
                   <label
                     htmlFor="avatar-upload"
@@ -340,7 +340,7 @@ export default function Profile() {
                   <VerifiedBadge size="md" />
                 )}
               </div>
-              <p className="text-xs font-medium text-slate-400">@{profile.username}</p>
+              <p className="text-xs font-medium text-slate-600 dark:text-slate-400">@{profile.username}</p>
               {profile.bio && (
                 <p className="text-sm text-slate-700 dark:text-slate-300 mt-2.5 leading-relaxed">{profile.bio}</p>
               )}
@@ -351,7 +351,7 @@ export default function Profile() {
           <div className="flex flex-wrap gap-6 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
             <div>
               <p className="text-base font-bold text-slate-900 dark:text-white">{posts.length}</p>
-              <p className="text-xs text-slate-400">Posts</p>
+              <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Posts</p>
             </div>
             <button
               onClick={() =>
@@ -393,7 +393,7 @@ export default function Profile() {
 
       {/* User's Posts */}
       <div>
-        <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-1">Posts</h2>
+        <h2 className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-3 px-1">Posts</h2>
         {postsLoading ? (
           <div className="flex justify-center py-8">
             <svg className="w-5 h-5 animate-spin text-brand-500" fill="none" viewBox="0 0 24 24">
@@ -404,7 +404,7 @@ export default function Profile() {
         ) : posts.length === 0 ? (
           <div className="glass p-10 text-center">
             <div className="text-3xl mb-2">{profile.isPrivate && !following && !isOwn ? "🔒" : "📝"}</div>
-            <p className="text-slate-500 text-xs">
+            <p className="text-slate-600 dark:text-slate-400 text-xs">
               {profile.isPrivate && !following && !isOwn
                 ? "This account is private. Follow to view posts."
                 : "No posts published yet."}

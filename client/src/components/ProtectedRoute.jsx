@@ -12,7 +12,7 @@ export default function ProtectedRoute({ children }) {
             <div className="w-10 h-10 rounded-full border-2 border-brand-500/20" />
             <div className="absolute inset-0 w-10 h-10 rounded-full border-2 border-brand-500 border-t-transparent animate-spin" />
           </div>
-          <p className="text-slate-400 text-xs font-semibold">Loading Buzz Chat…</p>
+          <p className="text-slate-600 dark:text-slate-400 text-xs font-semibold">Loading Buzz Chat…</p>
         </div>
       </div>
     );

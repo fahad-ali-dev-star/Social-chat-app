@@ -45,7 +45,7 @@ function SearchUserCard({ user, currentUserId }) {
             {user.displayName || user.username}
             {user.isVerified && <VerifiedBadge size="xs" />}
           </p>
-          <p className="text-xs text-slate-400">@{user.username}</p>
+          <p className="text-xs text-slate-600 dark:text-slate-400">@{user.username}</p>
           {user.bio && <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 truncate">{user.bio}</p>}
         </div>
       </Link>
@@ -116,7 +116,7 @@ export default function Search() {
       <form onSubmit={handleSubmit} className="glass p-3.5 sm:p-4">
         <div className="flex gap-2.5">
           <div className="relative flex-1">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 pointer-events-none">
               <SearchIcon />
             </span>
             <input
@@ -125,7 +125,7 @@ export default function Search() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search people, tags or posts..."
               autoFocus
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
             />
           </div>
           <button
@@ -160,7 +160,7 @@ export default function Search() {
                 className={`pb-3 text-xs font-bold capitalize transition-all border-b-2 -mb-px ${
                   activeTab === tab
                     ? "border-brand-500 text-brand-600 dark:text-brand-400"
-                    : "border-transparent text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                    : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                 }`}
               >
                 {tab === "people" ? `People (${users.length})` : `Posts (${posts.length})`}
@@ -174,7 +174,7 @@ export default function Search() {
               {users.length === 0 ? (
                 <div className="glass p-10 text-center">
                   <div className="text-3xl mb-2">👥</div>
-                  <p className="text-slate-500 text-xs">
+                  <p className="text-slate-600 dark:text-slate-400 text-xs">
                     {query.trim() ? `No people found matching "${query}"` : "No results"}
                   </p>
                 </div>
@@ -192,7 +192,7 @@ export default function Search() {
               {posts.length === 0 ? (
                 <div className="glass p-10 text-center">
                   <div className="text-3xl mb-2">📝</div>
-                  <p className="text-slate-500 text-xs">
+                  <p className="text-slate-600 dark:text-slate-400 text-xs">
                     {query.trim() ? `No posts found matching "${query}"` : "Search for topics or keywords"}
                   </p>
                 </div>

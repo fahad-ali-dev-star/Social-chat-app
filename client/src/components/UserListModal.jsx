@@ -22,7 +22,7 @@ export default function UserListModal({ title, users, isOpen, onClose }) {
           <h3 className="text-sm font-bold text-slate-900 dark:text-white capitalize">{title}</h3>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-xs font-bold"
+            className="w-7 h-7 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-xs font-bold"
           >
             ✕
           </button>
@@ -31,7 +31,7 @@ export default function UserListModal({ title, users, isOpen, onClose }) {
         {/* List */}
         <div className="p-3 overflow-y-auto space-y-1 flex-1">
           {users.length === 0 ? (
-            <p className="text-center text-slate-400 text-xs py-8">No users found.</p>
+            <p className="text-center text-slate-600 dark:text-slate-400 text-xs py-8">No users found.</p>
           ) : (
             users.map((u) => (
               <Link
@@ -54,7 +54,7 @@ export default function UserListModal({ title, users, isOpen, onClose }) {
                       </p>
                       {u.isVerified && <VerifiedBadge size="xs" />}
                     </div>
-                    <p className="text-[11px] text-slate-400 truncate">@{u.username}</p>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 truncate">@{u.username}</p>
                   </div>
                 </div>
 

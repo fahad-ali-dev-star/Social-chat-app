@@ -31,7 +31,7 @@ export default function TrendingHashtags() {
     <div className="glass p-4 mb-4 animate-fade-in">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-bold text-slate-900 dark:text-white">Trending Topics</h3>
-        <span className="text-[11px] text-slate-400 font-medium">Explore</span>
+        <span className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">Explore</span>
       </div>
       <div className="space-y-1.5">
         {hashtags.map(({ tag, count }) => (
@@ -44,9 +44,9 @@ export default function TrendingHashtags() {
               <p className="text-xs font-bold text-brand-600 dark:text-brand-400 group-hover:underline">
                 {tag}
               </p>
-              <p className="text-[10px] text-slate-400">{count} {count === 1 ? "post" : "posts"}</p>
+              <p className="text-[10px] text-slate-600 dark:text-slate-400">{count} {count === 1 ? "post" : "posts"}</p>
             </div>
-            <span className="text-xs text-slate-300 dark:text-slate-600 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">→</span>
+            <span className="text-xs text-slate-400 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">→</span>
           </div>
         ))}
       </div>

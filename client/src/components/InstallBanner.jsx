@@ -72,7 +72,7 @@ export default function InstallBanner() {
         <div className="flex-1 min-w-0">
           <p className="text-slate-900 dark:text-white font-bold text-sm leading-tight">Install Buzz Chat</p>
           {showIOSGuide ? (
-            <p className="text-slate-500 text-xs mt-1 leading-relaxed">
+            <p className="text-slate-600 dark:text-slate-400 text-xs mt-1 leading-relaxed">
               Tap the{" "}
               <span className="inline-flex items-center gap-0.5 text-slate-700 dark:text-slate-300">
                 <svg width="12" height="14" viewBox="0 0 24 28" fill="currentColor">
@@ -83,7 +83,7 @@ export default function InstallBanner() {
               button then <strong className="text-slate-800 dark:text-slate-200">"Add to Home Screen"</strong>
             </p>
           ) : (
-            <p className="text-slate-500 text-xs mt-1">
+            <p className="text-slate-600 dark:text-slate-400 text-xs mt-1">
               Add Buzz Chat to your home screen for quick access.
             </p>
           )}
@@ -100,7 +100,7 @@ export default function InstallBanner() {
           )}
           <button
             onClick={dismiss}
-            className="icon-btn w-7 h-7 text-gray-500"
+            className="icon-btn w-7 h-7 text-slate-500 dark:text-slate-400"
             aria-label="Dismiss"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

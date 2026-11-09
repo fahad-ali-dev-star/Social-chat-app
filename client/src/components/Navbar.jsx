@@ -211,7 +211,7 @@ export default function Navbar() {
           <div className="relative hidden sm:block flex-1 max-w-sm" ref={searchRef}>
             <form onSubmit={handleSearchSubmit}>
               <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 pointer-events-none">
                   <SearchIcon />
                 </span>
                 <input
@@ -220,7 +220,7 @@ export default function Navbar() {
                   onChange={handleSearchInput}
                   onFocus={() => searchResults && setSearchOpen(true)}
                   placeholder="Search Buzz..."
-                  className="w-full pl-10 pr-3.5 py-2 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
+                  className="w-full pl-10 pr-3.5 py-2 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
                 />
               </div>
             </form>
@@ -229,12 +229,12 @@ export default function Navbar() {
             {searchOpen && searchResults && (
               <div className="absolute top-full mt-2 w-full glass-lg rounded-2xl overflow-hidden shadow-popover z-50 animate-slide-up">
                 {searchResults.users.length === 0 && searchResults.posts.length === 0 ? (
-                  <p className="px-4 py-3.5 text-sm text-slate-500">No results found for "{searchQuery}"</p>
+                  <p className="px-4 py-3.5 text-sm text-slate-600 dark:text-slate-400">No results found for "{searchQuery}"</p>
                 ) : (
                   <>
                     {searchResults.users.length > 0 && (
                       <div>
-                        <p className="px-4 pt-3 pb-1 text-[11px] text-slate-400 font-bold uppercase tracking-wider">People</p>
+                        <p className="px-4 pt-3 pb-1 text-[11px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">People</p>
                         {searchResults.users.map((u) => (
                           <button
                             key={u._id}
@@ -244,7 +244,7 @@ export default function Navbar() {
                             <Avatar src={u.avatarUrl} name={u.displayName} username={u.username} size="sm" />
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{u.displayName || u.username}</p>
-                              <p className="text-xs text-slate-500 truncate">@{u.username}</p>
+                              <p className="text-xs text-slate-600 dark:text-slate-400 truncate">@{u.username}</p>
                             </div>
                           </button>
                         ))}
@@ -252,7 +252,7 @@ export default function Navbar() {
                     )}
                     {searchResults.posts.length > 0 && (
                       <div>
-                        <p className="px-4 pt-3 pb-1 text-[11px] text-slate-400 font-bold uppercase tracking-wider border-t border-slate-100 dark:border-slate-800/80">Posts</p>
+                        <p className="px-4 pt-3 pb-1 text-[11px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider border-t border-slate-100 dark:border-slate-800/80">Posts</p>
                         {searchResults.posts.map((p) => (
                           <div
                             key={p._id}
@@ -260,7 +260,7 @@ export default function Navbar() {
                             onClick={() => { navigate(`/search?q=${encodeURIComponent(searchQuery)}`); setSearchOpen(false); }}
                           >
                             <p className="text-xs text-slate-700 dark:text-slate-300 truncate">{p.content}</p>
-                            <p className="text-[11px] text-slate-400">by @{p.author?.username}</p>
+                            <p className="text-[11px] text-slate-600 dark:text-slate-400">by @{p.author?.username}</p>
                           </div>
                         ))}
                       </div>
@@ -326,7 +326,7 @@ export default function Navbar() {
                             e.stopPropagation();
                             setToastMessage(null);
                           }}
-                          className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xs p-1"
+                          className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs p-1"
                         >
                           ✕
                         </button>
@@ -349,7 +349,7 @@ export default function Navbar() {
                         </div>
                         <div className="max-h-80 overflow-y-auto p-1.5 space-y-1">
                           {notifications.length === 0 ? (
-                            <p className="text-center text-xs text-slate-400 py-6">No notifications yet</p>
+                            <p className="text-center text-xs text-slate-600 dark:text-slate-400 py-6">No notifications yet</p>
                           ) : (
                             notifications.slice(0, 8).map((n) => (
                               <div
@@ -434,7 +434,7 @@ export default function Navbar() {
                           e.stopPropagation();
                           setToastMessage(null);
                         }}
-                        className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xs p-1"
+                        className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs p-1"
                       >
                         ✕
                       </button>
@@ -465,7 +465,7 @@ export default function Navbar() {
                 <div className="absolute right-0 mt-2 w-64 glass-lg rounded-2xl shadow-popover z-50 p-4 space-y-4 animate-slide-up">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                     <p className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Appearance</p>
-                    <span className="text-[11px] text-slate-400">{isDark ? "Dark" : "Light"}</span>
+                    <span className="text-[11px] text-slate-600 dark:text-slate-400">{isDark ? "Dark" : "Light"}</span>
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -487,7 +487,7 @@ export default function Navbar() {
                   </div>
 
                   <div>
-                    <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider mb-2">Accent Theme</p>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 font-semibold uppercase tracking-wider mb-2">Accent Theme</p>
                     <div className="grid grid-cols-3 gap-2">
                       {ACCENT_THEMES.map((t) => (
                         <button
@@ -527,7 +527,7 @@ export default function Navbar() {
                 <span className="hidden md:block text-xs font-semibold text-slate-700 dark:text-slate-200">
                   @{user?.username}
                 </span>
-                <svg className={`w-3.5 h-3.5 text-slate-400 transition-transform ${menuOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 transition-transform ${menuOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
@@ -536,7 +536,7 @@ export default function Navbar() {
                 <div className="absolute right-0 mt-2 w-56 glass-lg rounded-2xl shadow-popover z-50 overflow-hidden animate-slide-up">
                   <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
                     <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{user?.displayName || user?.username}</p>
-                    <p className="text-xs text-slate-500 truncate">@{user?.username}</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 truncate">@{user?.username}</p>
                   </div>
                   <div className="p-1.5 space-y-0.5">
                     <button
@@ -581,7 +581,7 @@ export default function Navbar() {
       <div className="sm:hidden sticky top-[60px] z-30 w-full bg-white/95 dark:bg-slate-900/95 border-b border-slate-200 dark:border-slate-800/80 backdrop-blur-md px-3 py-2" ref={searchRef}>
         <form onSubmit={handleSearchSubmit}>
           <div className="relative">
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 pointer-events-none">
               <SearchIcon />
             </span>
             <input
@@ -590,7 +590,7 @@ export default function Navbar() {
               onChange={handleSearchInput}
               onFocus={() => searchResults && setSearchOpen(true)}
               placeholder="Search Buzz..."
-              className="w-full pl-10 pr-3.5 py-2 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
+              className="w-full pl-10 pr-3.5 py-2 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
             />
           </div>
         </form>
@@ -599,12 +599,12 @@ export default function Navbar() {
         {searchOpen && searchResults && (
           <div className="absolute left-3 right-3 top-full mt-1 glass-lg rounded-2xl overflow-hidden shadow-popover z-50 animate-slide-up">
             {searchResults.users.length === 0 && searchResults.posts.length === 0 ? (
-              <p className="px-4 py-3.5 text-sm text-slate-500">No results found for "{searchQuery}"</p>
+              <p className="px-4 py-3.5 text-sm text-slate-600 dark:text-slate-400">No results found for "{searchQuery}"</p>
             ) : (
               <>
                 {searchResults.users.length > 0 && (
                   <div>
-                    <p className="px-4 pt-3 pb-1 text-[11px] text-slate-400 font-bold uppercase tracking-wider">People</p>
+                    <p className="px-4 pt-3 pb-1 text-[11px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider">People</p>
                     {searchResults.users.map((u) => (
                       <button
                         key={u._id}
@@ -614,7 +614,7 @@ export default function Navbar() {
                         <Avatar src={u.avatarUrl} name={u.displayName} username={u.username} size="sm" />
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{u.displayName || u.username}</p>
-                          <p className="text-xs text-slate-500 truncate">@{u.username}</p>
+                          <p className="text-xs text-slate-600 dark:text-slate-400 truncate">@{u.username}</p>
                         </div>
                       </button>
                     ))}
@@ -622,7 +622,7 @@ export default function Navbar() {
                 )}
                 {searchResults.posts.length > 0 && (
                   <div>
-                    <p className="px-4 pt-3 pb-1 text-[11px] text-slate-400 font-bold uppercase tracking-wider border-t border-slate-100 dark:border-slate-800/80">Posts</p>
+                    <p className="px-4 pt-3 pb-1 text-[11px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider border-t border-slate-100 dark:border-slate-800/80">Posts</p>
                     {searchResults.posts.map((p) => (
                       <div
                         key={p._id}
@@ -630,7 +630,7 @@ export default function Navbar() {
                         onClick={() => { navigate(`/search?q=${encodeURIComponent(searchQuery)}`); setSearchOpen(false); }}
                       >
                         <p className="text-xs text-slate-700 dark:text-slate-300 truncate">{p.content}</p>
-                        <p className="text-[11px] text-slate-400">by @{p.author?.username}</p>
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400">by @{p.author?.username}</p>
                       </div>
                     ))}
                   </div>
@@ -659,7 +659,7 @@ export default function Navbar() {
               className={`relative flex flex-col items-center justify-center p-2 rounded-xl transition-all ${
                 isActive
                   ? "text-brand-600 dark:text-brand-400 font-bold"
-                  : "text-slate-500 dark:text-slate-400"
+                  : "text-slate-600 dark:text-slate-400"
               }`}
             >
               {icon(isActive)}

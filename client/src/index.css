@@ -194,7 +194,7 @@
     color: #f8fafc;
   }
   .field::placeholder {
-    color: #64748b;
+    color: #94a3b8;
   }
   .field:focus {
     border-color: var(--accent-color);
@@ -209,7 +209,7 @@
   }
   html.light .field::placeholder,
   html.light-mode .field::placeholder {
-    color: #94a3b8;
+    color: #475569;
   }
   html.light .field:focus,
   html.light-mode .field:focus {
@@ -220,7 +220,7 @@
   /* Icon button */
   .icon-btn {
     @apply flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-150;
-    color: #94a3b8;
+    color: #cbd5e1;
   }
   .icon-btn:hover {
     color: #f8fafc;
@@ -228,7 +228,7 @@
   }
   html.light .icon-btn,
   html.light-mode .icon-btn {
-    color: #64748b;
+    color: #475569;
   }
   html.light .icon-btn:hover,
   html.light-mode .icon-btn:hover {
@@ -239,7 +239,7 @@
   /* Navigation Link */
   .nav-link {
     @apply flex items-center gap-2.5 px-3 py-2 rounded-xl font-medium text-sm transition-all duration-150;
-    color: #94a3b8;
+    color: #cbd5e1;
   }
   .nav-link:hover {
     color: #f8fafc;
@@ -251,7 +251,7 @@
   }
   html.light .nav-link,
   html.light-mode .nav-link {
-    color: #64748b;
+    color: #334155;
   }
   html.light .nav-link:hover,
   html.light-mode .nav-link:hover {
@@ -267,15 +267,15 @@
   /* Post action buttons */
   .post-action {
     @apply flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer select-none;
-    color: #64748b;
+    color: #cbd5e1;
   }
   .post-action:hover {
-    color: #cbd5e1;
+    color: #ffffff;
     background-color: rgba(255, 255, 255, 0.06);
   }
   html.light .post-action,
   html.light-mode .post-action {
-    color: #64748b;
+    color: #334155;
   }
   html.light .post-action:hover,
   html.light-mode .post-action:hover {

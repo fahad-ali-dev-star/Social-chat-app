@@ -107,7 +107,7 @@ export default function CreatePostBox() {
       ? "text-rose-500 font-bold"
       : remaining < 30
       ? "text-amber-500 font-medium"
-      : "text-slate-400";
+      : "text-slate-600 dark:text-slate-400";
 
   return (
     <div className={`glass p-3.5 sm:p-4.5 transition-all duration-200 ${focused ? "ring-2 ring-brand-500/20" : ""}`}>
@@ -128,14 +128,14 @@ export default function CreatePostBox() {
             onFocus={() => setFocused(true)}
             onKeyDown={handleKeyDown}
             maxLength={MAX_CHARS + 10}
-            className="w-full bg-transparent resize-none text-slate-900 dark:text-slate-100 placeholder-slate-400 text-sm leading-relaxed outline-none transition-all"
+            className="w-full bg-transparent resize-none text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 text-sm leading-relaxed outline-none transition-all"
           />
 
           {/* Media preview */}
           {(mediaUrls.length > 0 || uploading) && (
             <div className="mt-2.5 relative animate-fade-in">
               {uploading ? (
-                <div className="h-28 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-2 text-slate-500 text-xs font-medium">
+                <div className="h-28 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-2 text-slate-600 dark:text-slate-400 text-xs font-medium">
                   <svg className="w-4 h-4 animate-spin text-brand-500" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />

@@ -47,7 +47,7 @@ export default function SuggestedUsers() {
     <div className="glass p-4 animate-fade-in">
       <div className="flex items-center justify-between mb-3.5">
         <h3 className="text-sm font-bold text-slate-900 dark:text-white">Who to follow</h3>
-        <span className="text-[11px] text-slate-400 font-medium">Suggestions</span>
+        <span className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">Suggestions</span>
       </div>
       <div className="space-y-3">
         {users.map((u) => {
@@ -68,7 +68,7 @@ export default function SuggestedUsers() {
                     </p>
                     {u.isVerified && <VerifiedBadge size="xs" />}
                   </div>
-                  <p className="text-[11px] text-slate-400 truncate">@{u.username}</p>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 truncate">@{u.username}</p>
                 </div>
               </Link>
               <button
