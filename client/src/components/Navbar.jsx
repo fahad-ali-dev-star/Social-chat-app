@@ -205,7 +205,7 @@ export default function Navbar() {
             </span>
           </NavLink>
 
-          {/* Desktop Search Bar */}
+          {/* Search Bar - visible on sm+ screens inline, hidden on mobile (shown below header) */}
           <div className="relative hidden sm:block flex-1 max-w-sm" ref={searchRef}>
             <form onSubmit={handleSearchSubmit}>
               <div className="relative">
@@ -574,6 +574,76 @@ export default function Navbar() {
           </div>
         </div>
       </header>
+
+      {/* Mobile Search Bar - visible only on small screens, below the header */}
+      <div className="sm:hidden sticky top-[60px] z-30 w-full bg-white/95 dark:bg-slate-900/95 border-b border-slate-200 dark:border-slate-800/80 backdrop-blur-md px-3 py-2" ref={searchRef}>
+        <form onSubmit={handleSearchSubmit}>
+          <div className="relative">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+              <SearchIcon />
+            </span>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={handleSearchInput}
+              onFocus={() => searchResults && setSearchOpen(true)}
+              placeholder="Search Buzz..."
+              className="w-full pl-10 pr-3.5 py-2 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
+            />
+          </div>
+        </form>
+
+        {/* Mobile Quick Search Dropdown */}
+        {searchOpen && searchResults && (
+          <div className="absolute left-3 right-3 top-full mt-1 glass-lg rounded-2xl overflow-hidden shadow-popover z-50 animate-slide-up">
+            {searchResults.users.length === 0 && searchResults.posts.length === 0 ? (
+              <p className="px-4 py-3.5 text-sm text-slate-500">No results found for "{searchQuery}"</p>
+            ) : (
+              <>
+                {searchResults.users.length > 0 && (
+                  <div>
+                    <p className="px-4 pt-3 pb-1 text-[11px] text-slate-400 font-bold uppercase tracking-wider">People</p>
+                    {searchResults.users.map((u) => (
+                      <button
+                        key={u._id}
+                        onClick={() => { navigate(`/profile/${u.username}`); setSearchOpen(false); setSearchQuery(""); }}
+                        className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-all text-left"
+                      >
+                        <Avatar src={u.avatarUrl} name={u.displayName} username={u.username} size="sm" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{u.displayName || u.username}</p>
+                          <p className="text-xs text-slate-500 truncate">@{u.username}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {searchResults.posts.length > 0 && (
+                  <div>
+                    <p className="px-4 pt-3 pb-1 text-[11px] text-slate-400 font-bold uppercase tracking-wider border-t border-slate-100 dark:border-slate-800/80">Posts</p>
+                    {searchResults.posts.map((p) => (
+                      <div
+                        key={p._id}
+                        className="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-all cursor-pointer"
+                        onClick={() => { navigate(`/search?q=${encodeURIComponent(searchQuery)}`); setSearchOpen(false); }}
+                      >
+                        <p className="text-xs text-slate-700 dark:text-slate-300 truncate">{p.content}</p>
+                        <p className="text-[11px] text-slate-400">by @{p.author?.username}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <button
+                  onClick={handleSearchSubmit}
+                  className="w-full px-4 py-2.5 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-all text-left border-t border-slate-100 dark:border-slate-800/80"
+                >
+                  See all results for "{searchQuery}" →
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Mobile Fixed Bottom Navigation Bar (Ultra-clean PWA App Bar) */}
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 border-t border-slate-200 dark:border-slate-800/80 backdrop-blur-md px-2 py-1.5 flex items-center justify-around shadow-lg">

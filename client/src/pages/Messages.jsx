@@ -48,6 +48,44 @@ function groupMessages(messages) {
 
 const EMOJIS = ["❤️", "😂", "😮", "😢", "👏", "🔥"];
 
+/* ─────────────── MsgAvatar: fills its container properly ─────────────── */
+const MSG_GRADIENTS = [
+  "linear-gradient(135deg,#7c3aed,#4f46e5)",
+  "linear-gradient(135deg,#2563eb,#4f46e5)",
+  "linear-gradient(135deg,#e11d48,#ec4899)",
+  "linear-gradient(135deg,#0d9488,#059669)",
+  "linear-gradient(135deg,#d97706,#ea580c)",
+  "linear-gradient(135deg,#4f46e5,#06b6d4)",
+];
+function getAvatarGradient(key = "") {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = key.charCodeAt(i) + ((h << 5) - h);
+  return MSG_GRADIENTS[Math.abs(h) % MSG_GRADIENTS.length];
+}
+function MsgAvatar({ src, name, username, size = 40 }) {
+  const key = name || username || "?";
+  const initials = key.slice(0, 2).toUpperCase();
+  const gradient = getAvatarGradient(key);
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: "50%", overflow: "hidden",
+      background: gradient, display: "flex", alignItems: "center",
+      justifyContent: "center", flexShrink: 0,
+      fontSize: Math.round(size * 0.32), fontWeight: 700, color: "#fff",
+      userSelect: "none",
+    }}>
+      {src ? (
+        <img
+          src={src}
+          alt={key}
+          style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center", display: "block" }}
+          onError={(e) => { e.target.style.display = "none"; }}
+        />
+      ) : initials}
+    </div>
+  );
+}
+
 /* ─────────────── SVG icons ─────────────── */
 const IgSend = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="w-6 h-6">
@@ -703,7 +741,7 @@ export default function Messages() {
                         padding: 2, flexShrink: 0,
                       }}>
                         <div style={{ width: "100%", height: "100%", borderRadius: "50%", overflow: "hidden", background: "var(--ig-bg)" }}>
-                          <Avatar src={other?.avatarUrl} name={other?.displayName} username={other?.username} size="md" />
+                          <MsgAvatar src={other?.avatarUrl} name={other?.displayName} username={other?.username} size={52} />
                         </div>
                       </div>
                       {online && <span className="online-dot" />}
@@ -776,7 +814,7 @@ export default function Messages() {
                     padding: 2,
                   }}>
                     <div style={{ width: "100%", height: "100%", borderRadius: "50%", overflow: "hidden", background: "var(--ig-bg)" }}>
-                      <Avatar src={otherUser?.avatarUrl} name={otherUser?.displayName} username={otherUser?.username} size="sm" />
+                      <MsgAvatar src={otherUser?.avatarUrl} name={otherUser?.displayName} username={otherUser?.username} size={38} />
                     </div>
                   </div>
                   {isOnline(otherUser?._id) && <span className="online-dot" />}
@@ -819,7 +857,7 @@ export default function Messages() {
                   <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: 32, textAlign: "center" }}>
                     <div style={{ width: 80, height: 80, borderRadius: "50%", overflow: "hidden", background: "linear-gradient(135deg,#c13584,#e1306c,#f77737)", padding: 3 }}>
                       <div style={{ width: "100%", height: "100%", borderRadius: "50%", overflow: "hidden", background: "var(--ig-bg)" }}>
-                        <Avatar src={otherUser?.avatarUrl} name={otherUser?.displayName} username={otherUser?.username} size="xl" />
+                        <MsgAvatar src={otherUser?.avatarUrl} name={otherUser?.displayName} username={otherUser?.username} size={74} />
                       </div>
                     </div>
                     <div>
@@ -887,9 +925,7 @@ export default function Messages() {
                             {/* Incoming avatar (last in group only) */}
                             <div style={{ width: 32, flexShrink: 0, alignSelf: "flex-end" }}>
                               {!isMe && msg.lastInGroup && (
-                                <div style={{ width: 30, height: 30, borderRadius: "50%", overflow: "hidden", background: "var(--ig-bg-card)" }}>
-                                  <Avatar src={msg.sender?.avatarUrl} name={msg.sender?.displayName} username={msg.sender?.username} size="xs" />
-                                </div>
+                                <MsgAvatar src={msg.sender?.avatarUrl} name={msg.sender?.displayName} username={msg.sender?.username} size={30} />
                               )}
                             </div>
 
@@ -1068,9 +1104,7 @@ export default function Messages() {
                     {/* Typing indicator */}
                     {isOtherTyping && (
                       <div style={{ display: "flex", alignItems: "flex-end", gap: 8, marginTop: 4 }}>
-                        <div style={{ width: 30, height: 30, borderRadius: "50%", overflow: "hidden", background: "var(--ig-bg-card)", flexShrink: 0 }}>
-                          <Avatar src={otherUser?.avatarUrl} name={otherUser?.displayName} username={otherUser?.username} size="xs" />
-                        </div>
+                        <MsgAvatar src={otherUser?.avatarUrl} name={otherUser?.displayName} username={otherUser?.username} size={30} />
                         <div className="ig-bubble-in solo" style={{ padding: "10px 16px", display: "flex", gap: 4, alignItems: "center" }}>
                           <span className="typing-dot" />
                           <span className="typing-dot" />
