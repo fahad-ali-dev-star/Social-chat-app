@@ -32,7 +32,7 @@ export default function Bookmarks() {
           </div>
           <div>
             <h1 className="text-lg font-bold text-slate-900 dark:text-white">Bookmarks</h1>
-            <p className="text-xs text-slate-400">Posts you've saved for later</p>
+            <p className="text-xs text-slate-600 dark:text-slate-400">Posts you've saved for later</p>
           </div>
         </div>
       </div>
@@ -51,7 +51,7 @@ export default function Bookmarks() {
             🔖
           </div>
           <p className="text-slate-900 dark:text-white font-bold text-sm">No bookmarks saved yet</p>
-          <p className="text-slate-400 text-xs mt-1 max-w-xs mx-auto">
+          <p className="text-slate-600 dark:text-slate-400 text-xs mt-1 max-w-xs mx-auto">
             Click the bookmark icon on any post in your feed to save it to this list.
           </p>
         </div>
@@ -61,7 +61,7 @@ export default function Bookmarks() {
             <PostCard key={post._id} post={post} myUserId={currentUser?.id} />
           ))}
           {visiblePosts.length < posts.length && (
-            <p className="text-center text-xs text-slate-400 py-2">
+            <p className="text-center text-xs text-slate-600 dark:text-slate-400 py-2">
               {posts.length - visiblePosts.length} post(s) removed from bookmarks
             </p>
           )}

@@ -97,7 +97,7 @@ export default function Notifications() {
             🔔
           </div>
           <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">No notifications yet</h3>
-          <p className="text-slate-400 text-xs max-w-xs mx-auto">
+          <p className="text-slate-600 dark:text-slate-400 text-xs max-w-xs mx-auto">
             When someone likes your posts, comments or follows you, you'll see it here in real time.
           </p>
         </div>
@@ -145,7 +145,7 @@ export default function Notifications() {
                       ? "mentioned you"
                       : "interacted with your content"}
                   </p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">{formatDate(n.createdAt)}</p>
+                  <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">{formatDate(n.createdAt)}</p>
                 </div>
 
                 {!n.read && (

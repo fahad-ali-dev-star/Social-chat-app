@@ -78,6 +78,8 @@ function MsgAvatar({ src, name, username, size = 40 }) {
         <img
           src={src}
           alt={key}
+          width="100%"
+          height="100%"
           style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center", display: "block" }}
           onError={(e) => { e.target.style.display = "none"; }}
         />
@@ -354,14 +356,14 @@ export default function Messages() {
           --ig-border:     #1e293b;
           --ig-border-md:  #334155;
           --ig-text:       #f8fafc;
-          --ig-text-sub:   #94a3b8;
-          --ig-text-meta:  #64748b;
+          --ig-text-sub:   #cbd5e1;
+          --ig-text-meta:  #94a3b8;
           --ig-bubble-in:  #1e293b;
           --ig-bubble-in-text: #f8fafc;
           --ig-input-bg:   #1e293b;
           --ig-input-border: #334155;
           --ig-input-focus: var(--accent-color, #7c3aed);
-          --ig-input-ph:   #64748b;
+          --ig-input-ph:   #94a3b8;
           --ig-shadow:     rgba(0,0,0,0.3);
           --ig-shadow-lg:  rgba(0,0,0,0.5);
           --ig-online-border: #0f172a;
@@ -374,14 +376,14 @@ export default function Messages() {
           --ig-border:     #e2e8f0;
           --ig-border-md:  #cbd5e1;
           --ig-text:       #0f172a;
-          --ig-text-sub:   #475569;
-          --ig-text-meta:  #94a3b8;
+          --ig-text-sub:   #334155;
+          --ig-text-meta:  #475569;
           --ig-bubble-in:  #e2e8f0;
           --ig-bubble-in-text: #0f172a;
           --ig-input-bg:   #ffffff;
           --ig-input-border: #cbd5e1;
           --ig-input-focus: var(--accent-color, #7c3aed);
-          --ig-input-ph:   #94a3b8;
+          --ig-input-ph:   #475569;
           --ig-shadow:     rgba(0,0,0,0.06);
           --ig-shadow-lg:  rgba(0,0,0,0.1);
           --ig-online-border: #ffffff;
@@ -984,6 +986,8 @@ export default function Messages() {
                                       <img
                                         src={msg.mediaUrl}
                                         alt="attachment"
+                                        width="800"
+                                        height="240"
                                         style={{ borderRadius: 12, maxHeight: 240, width: "100%", objectFit: "cover", marginBottom: msg.body ? 8 : 0, cursor: "pointer" }}
                                         onClick={() => window.open(msg.mediaUrl, "_blank")}
                                       />
@@ -1146,7 +1150,7 @@ export default function Messages() {
                     </div>
                   ) : mediaType === "image" ? (
                     <div style={{ position: "relative" }}>
-                      <img src={mediaUrl} alt="preview" style={{ width: 60, height: 60, borderRadius: 12, objectFit: "cover", border: "2px solid var(--ig-border-md)" }} />
+                      <img src={mediaUrl} alt="preview" width="60" height="60" style={{ width: 60, height: 60, borderRadius: 12, objectFit: "cover", border: "2px solid var(--ig-border-md)" }} />
                       <button
                         onClick={() => { setMediaUrl(""); setMediaType(""); }}
                         style={{

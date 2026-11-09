@@ -69,7 +69,7 @@ export default function Admin() {
     }
   };
 
-  if (loading) return <div className="max-w-6xl mx-auto p-6 text-slate-400">Loading admin dashboard…</div>;
+  if (loading) return <div className="max-w-6xl mx-auto p-6 text-slate-600 dark:text-slate-400">Loading admin dashboard…</div>;
   if (error && !stats) return <div className="max-w-3xl mx-auto p-6 text-rose-500 font-medium">{error}</div>;
 
   return (
@@ -77,7 +77,7 @@ export default function Admin() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white">Admin Dashboard</h1>
-          <p className="text-xs text-slate-400">Platform metrics, user management, and moderation</p>
+          <p className="text-xs text-slate-600 dark:text-slate-400">Platform metrics, user management, and moderation</p>
         </div>
         <div className="flex gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
           {["overview", "reports", "users"].map((x) => (
@@ -103,7 +103,7 @@ export default function Admin() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {Object.entries(stats).map(([key, value]) => (
             <div key={key} className="glass p-5">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                 {key.replace(/([A-Z])/g, " $1")}
               </p>
               <p className="text-2xl font-black text-slate-900 dark:text-white mt-1.5">
@@ -125,7 +125,7 @@ export default function Admin() {
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold capitalize transition-all ${
                   reportStatus === s
                     ? "bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20"
-                    : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 {s}
@@ -135,7 +135,7 @@ export default function Admin() {
 
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {reports.length === 0 ? (
-              <p className="p-10 text-center text-xs text-slate-400">No {reportStatus} reports found.</p>
+              <p className="p-10 text-center text-xs text-slate-600 dark:text-slate-400">No {reportStatus} reports found.</p>
             ) : (
               reports.map((r) => (
                 <div key={r._id} className="p-4 space-y-3">
@@ -144,11 +144,11 @@ export default function Admin() {
                       <p className="text-sm font-bold text-slate-900 dark:text-white">
                         {r.targetType} · {r.reason}
                       </p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
                         Reported by @{r.reporter?.username || "unknown"} · {new Date(r.createdAt).toLocaleString()}
                       </p>
                     </div>
-                    <span className="text-[10px] font-bold uppercase rounded-lg bg-slate-100 dark:bg-slate-800 px-2.5 py-1 text-slate-500">
+                    <span className="text-[10px] font-bold uppercase rounded-lg bg-slate-100 dark:bg-slate-800 px-2.5 py-1 text-slate-600 dark:text-slate-400">
                       {r.status}
                     </span>
                   </div>
@@ -190,7 +190,7 @@ export default function Admin() {
       {tab === "users" && (
         <div className="glass overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="text-[11px] text-slate-400 font-bold uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
+            <thead className="text-[11px] text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
               <tr>
                 <th className="p-3.5">User</th>
                 <th className="p-3.5">Role</th>
@@ -204,7 +204,7 @@ export default function Admin() {
                 <tr key={u._id}>
                   <td className="p-3.5">
                     <p className="font-bold text-slate-900 dark:text-white text-xs">{u.displayName || u.username}</p>
-                    <p className="text-[11px] text-slate-400">@{u.username}</p>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400">@{u.username}</p>
                   </td>
                   <td className="p-3.5">
                     <select
@@ -231,7 +231,7 @@ export default function Admin() {
                   <td className="p-3.5">
                     <button
                       onClick={() => updateUser(u._id, { isVerified: !u.isVerified })}
-                      className={`text-xs font-semibold ${u.isVerified ? "text-brand-600 dark:text-brand-400" : "text-slate-400"}`}
+                      className={`text-xs font-semibold ${u.isVerified ? "text-brand-600 dark:text-brand-400" : "text-slate-600 dark:text-slate-400"}`}
                     >
                       {u.isVerified ? "Verified ✓" : "Not verified"}
                     </button>

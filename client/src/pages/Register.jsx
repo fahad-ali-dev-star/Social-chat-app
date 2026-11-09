@@ -51,18 +51,18 @@ export default function Register() {
         <div className="text-center mb-6">
           <div
             className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-3 text-white font-black text-xl shadow-md overflow-hidden select-none"
-            style={{ background: formData.displayName ? "var(--brand-gradient)" : "transparent" }}
+            style={{ background: form.displayName ? "var(--brand-gradient)" : "transparent" }}
           >
-            {formData.displayName.trim() ? (
+            {form.displayName.trim() ? (
               initials
             ) : (
-              <img src="/logo.svg" alt="BuzzChat Logo" className="w-full h-full object-cover" onError={(e) => { e.target.src = "/logo192.png"; }} />
+              <img src="/logo.svg" alt="BuzzChat Logo" width="64" height="64" className="w-full h-full object-cover" onError={(e) => { e.target.src = "/logo192.png"; }} />
             )}
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
             Join Buzz Chat
           </h1>
-          <p className="text-slate-500 text-xs sm:text-sm mt-1">Create your profile and start connecting</p>
+          <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1">Create your profile and start connecting</p>
         </div>
 
         {/* Card */}
@@ -169,7 +169,7 @@ export default function Register() {
             </button>
           </form>
 
-          <p className="text-center text-xs text-slate-500 mt-6">
+          <p className="text-center text-xs text-slate-600 dark:text-slate-400 mt-6">
             Already have an account?{" "}
             <Link to="/login" className="text-brand-600 dark:text-brand-400 font-bold hover:underline">
               Sign in

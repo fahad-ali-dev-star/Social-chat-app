@@ -62,13 +62,13 @@ export default function Feed() {
 
             {/* Media Filter Pills */}
             <div className="flex items-center gap-1 text-xs">
-              <span className="text-[11px] font-medium text-slate-400 mr-1 hidden sm:inline">Filter:</span>
+              <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 mr-1 hidden sm:inline">Filter:</span>
               <button
                 onClick={() => setActiveMediaType("")}
                 className={`text-xs font-medium px-2.5 py-1 rounded-lg transition-all ${
                   activeMediaType === ""
                     ? "bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold"
-                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/40"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/40"
                 }`}
               >
                 All
@@ -78,7 +78,7 @@ export default function Feed() {
                 className={`text-xs font-medium px-2.5 py-1 rounded-lg transition-all ${
                   activeMediaType === "image"
                     ? "bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold"
-                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/40"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/40"
                 }`}
               >
                 📷 Photos
@@ -88,7 +88,7 @@ export default function Feed() {
                 className={`text-xs font-medium px-2.5 py-1 rounded-lg transition-all ${
                   activeMediaType === "video"
                     ? "bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold"
-                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/40"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/40"
                 }`}
               >
                 🎥 Videos
@@ -123,7 +123,7 @@ export default function Feed() {
                   ✨
                 </div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">Your feed is quiet</h3>
-                <p className="text-slate-500 text-xs max-w-xs mx-auto mb-4">
+                <p className="text-slate-600 dark:text-slate-400 text-xs max-w-xs mx-auto mb-4">
                   Follow interesting people or share what's on your mind right now!
                 </p>
                 <button
@@ -162,7 +162,7 @@ export default function Feed() {
             )}
 
             {!hasMore && posts.length > 0 && (
-              <p className="text-center text-xs text-slate-400 py-6">You're all caught up ✨</p>
+              <p className="text-center text-xs text-slate-600 dark:text-slate-400 py-6">You're all caught up ✨</p>
             )}
           </div>
         </main>
@@ -182,7 +182,7 @@ export default function Feed() {
                 <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
                   {user?.displayName || user?.username}
                 </p>
-                <p className="text-xs text-slate-500 truncate">@{user?.username}</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 truncate">@{user?.username}</p>
               </div>
             </div>
           </div>
@@ -194,9 +194,9 @@ export default function Feed() {
           <SuggestedUsers />
 
           {/* Footer */}
-          <div className="text-[11px] text-slate-400 px-1 space-y-1">
+          <div className="text-[11px] text-slate-600 dark:text-slate-400 px-1 space-y-1">
             <p>© 2026 Buzz Chat · Final Year Project</p>
-            <p className="text-slate-500">MERN Social Platform with Realtime WebSockets</p>
+            <p className="text-slate-600 dark:text-slate-400">MERN Social Platform with Realtime WebSockets</p>
           </div>
         </aside>
       </div>

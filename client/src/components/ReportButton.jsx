@@ -30,7 +30,7 @@ export default function ReportButton({ targetType, targetId, className = "" }) {
     <div className={`relative ${className}`}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="text-[11px] text-slate-400 hover:text-rose-500 transition-colors font-medium flex items-center gap-1"
+        className="text-[11px] text-slate-600 dark:text-slate-400 hover:text-rose-500 transition-colors font-medium flex items-center gap-1"
       >
         <span>⚑</span> Report
       </button>

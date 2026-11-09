@@ -90,7 +90,7 @@ export default function CommentPanel({ postId, onCommentAdded }) {
       ) : (
         <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
           {comments.length === 0 ? (
-            <p className="text-xs text-slate-400 text-center py-4">No comments yet. Start the conversation!</p>
+            <p className="text-xs text-slate-600 dark:text-slate-400 text-center py-4">No comments yet. Start the conversation!</p>
           ) : (
             comments.filter((c) => !c.parentComment).map((c) => (
               <div key={c._id} className="animate-fade-in space-y-1.5">
@@ -104,19 +104,19 @@ export default function CommentPanel({ postId, onCommentAdded }) {
                         </span>
                         {c.author?.isVerified && <VerifiedBadge size="xs" />}
                       </div>
-                      <span className="text-[10px] text-slate-400">{formatDate(c.createdAt)}</span>
+                      <span className="text-[10px] text-slate-600 dark:text-slate-400">{formatDate(c.createdAt)}</span>
                     </div>
                     <p className="text-xs text-slate-700 dark:text-slate-200 mt-1 leading-relaxed whitespace-pre-wrap">{c.content}</p>
                     <div className="flex items-center gap-3 mt-2 text-[11px] font-medium">
                       <button
                         onClick={() => handleCommentLike(c._id)}
-                        className={`flex items-center gap-1 ${c._liked ? "text-rose-500 font-bold" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"}`}
+                        className={`flex items-center gap-1 ${c._liked ? "text-rose-500 font-bold" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}`}
                       >
                         ♥ <span>{c.likesCount || 0}</span>
                       </button>
                       <button
                         onClick={() => { setReplyTo(c); inputRef.current?.focus(); }}
-                        className="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400"
+                        className="text-slate-600 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400"
                       >
                         Reply
                       </button>
@@ -137,13 +137,13 @@ export default function CommentPanel({ postId, onCommentAdded }) {
                           <span className="text-[11px] font-bold text-slate-900 dark:text-slate-100">
                             {r.author?.displayName || r.author?.username}
                           </span>
-                          <span className="text-[10px] text-slate-400">{formatDate(r.createdAt)}</span>
+                          <span className="text-[10px] text-slate-600 dark:text-slate-400">{formatDate(r.createdAt)}</span>
                         </div>
                         <p className="text-xs text-slate-700 dark:text-slate-300 mt-0.5">{r.content}</p>
                         <div className="flex items-center gap-3 mt-1.5 text-[10px]">
                           <button
                             onClick={() => handleCommentLike(r._id)}
-                            className={r._liked ? "text-rose-500 font-bold" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"}
+                            className={r._liked ? "text-rose-500 font-bold" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}
                           >
                             ♥ {r.likesCount || 0}
                           </button>
@@ -165,7 +165,7 @@ export default function CommentPanel({ postId, onCommentAdded }) {
       {replyTo && (
         <div className="flex items-center justify-between rounded-xl bg-brand-500/10 border border-brand-500/20 px-3 py-1.5 text-xs text-brand-600 dark:text-brand-300 font-medium">
           <span>Replying to @{replyTo.author?.username}</span>
-          <button type="button" onClick={() => setReplyTo(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xs font-bold">
+          <button type="button" onClick={() => setReplyTo(null)} className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs font-bold">
             ✕
           </button>
         </div>
@@ -188,7 +188,7 @@ export default function CommentPanel({ postId, onCommentAdded }) {
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
             maxLength={500}
-            className="flex-1 bg-transparent text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 outline-none"
+            className="flex-1 bg-transparent text-xs text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 outline-none"
           />
           <button
             type="submit"

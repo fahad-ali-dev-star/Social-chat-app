@@ -43,12 +43,12 @@ export default function Login() {
         {/* Brand Header */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-3 shadow-md overflow-hidden select-none">
-            <img src="/logo.svg" alt="BuzzChat Logo" className="w-full h-full object-cover" onError={(e) => { e.target.src = "/logo192.png"; }} />
+            <img src="/logo.svg" alt="BuzzChat Logo" width="64" height="64" className="w-full h-full object-cover" onError={(e) => { e.target.src = "/logo192.png"; }} />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
             Welcome to Buzz Chat
           </h1>
-          <p className="text-slate-500 text-xs sm:text-sm mt-1">Sign in to connect, share and explore</p>
+          <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1">Sign in to connect, share and explore</p>
         </div>
 
         {/* Card */}
@@ -97,7 +97,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPw((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                 >
                   <EyeIcon open={showPw} />
                 </button>
@@ -120,7 +120,7 @@ export default function Login() {
             </button>
           </form>
 
-          <p className="text-center text-xs text-slate-500 mt-6">
+          <p className="text-center text-xs text-slate-600 dark:text-slate-400 mt-6">
             Don't have an account?{" "}
             <Link to="/register" className="text-brand-600 dark:text-brand-400 font-bold hover:underline">
               Create an account
