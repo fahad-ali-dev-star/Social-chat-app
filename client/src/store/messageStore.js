@@ -180,8 +180,10 @@ export const useMessageStore = create((set, get) => ({
   },
 
   addIncomingMessage: (message, conversationId) => {
-    const { activeConversation, unreadCount } = get();
-    if (activeConversation?._id === conversationId) {
+    const { activeConversation, conversations, unreadCount } = get();
+    const isCurrentActive = String(activeConversation?._id) === String(conversationId);
+
+    if (isCurrentActive) {
       set((state) => {
         // Check if we already have this message (by real ID)
         const hasReal = state.messages.some((m) => m._id === message._id);
@@ -193,23 +195,32 @@ export const useMessageStore = create((set, get) => ({
         return { messages: [...filtered, message] };
       });
       get().markConversationRead(conversationId);
-    } else {
-      set({ unreadCount: unreadCount + 1 });
     }
 
-    set((state) => {
-      const updated = state.conversations.map((c) =>
-        c._id === conversationId
-          ? {
-              ...c,
-              lastMessage: message.body || (message.mediaType === "audio" ? "🎙️ Voice note" : "📷 Photo"),
-              updatedAt: new Date().toISOString(),
-              unreadCount: activeConversation?._id === conversationId ? 0 : (c.unreadCount || 0) + 1,
-            }
-          : c
-      );
-      return { conversations: updated.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)) };
-    });
+    const conversationExists = conversations.some((c) => String(c._id) === String(conversationId));
+    if (!conversationExists) {
+      // If conversation is new or not in store yet, reload from backend to get full participant details
+      // and ensure unreadCount and conversation list are 100% up to date
+      get().loadConversations();
+    } else {
+      set((state) => {
+        const updated = state.conversations.map((c) =>
+          String(c._id) === String(conversationId)
+            ? {
+                ...c,
+                lastMessage: message.body || (message.mediaType === "audio" ? "🎙️ Voice note" : "📷 Photo"),
+                updatedAt: new Date().toISOString(),
+                unreadCount: isCurrentActive ? 0 : (c.unreadCount || 0) + 1,
+              }
+            : c
+        );
+        const totalUnread = updated.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+        return {
+          conversations: updated.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
+          unreadCount: totalUnread,
+        };
+      });
+    }
   },
 
   markDelivered: ({ messageId, deliveredAt }) => {

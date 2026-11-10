@@ -201,9 +201,11 @@ export const sendMessage = async (req, res) => {
       if (!parent) return res.status(400).json({ message: "Reply target not found" });
     }
 
-    const recipientId = conversation.participants.find((id) => id.toString() !== String(req.userId));
-    if (recipientId) {
-      const recipient = await User.findById(recipientId).select("blockedUsers blockedBy");
+    const recipientIds = (conversation.participants || []).filter(
+      (id) => String(id._id || id) !== String(req.userId)
+    );
+    if (recipientIds.length > 0) {
+      const recipient = await User.findById(recipientIds[0]).select("blockedUsers blockedBy");
       if (
         recipient?.blockedUsers?.some((id) => id.toString() === String(req.userId)) ||
         recipient?.blockedBy?.some((id) => id.toString() === String(req.userId))
@@ -221,10 +223,12 @@ export const sendMessage = async (req, res) => {
       replyTo: replyTo || null,
     });
 
-    const recipientRoom = recipientId?.toString();
     const io = req.app.get("io");
-    const recipientOnline = recipientRoom && (io?.sockets?.adapter?.rooms?.get(recipientRoom)?.size || 0) > 0;
-    if (recipientOnline) message.deliveredAt = new Date();
+    const anyRecipientOnline = recipientIds.some((rId) => {
+      const room = String(rId._id || rId);
+      return (io?.sockets?.adapter?.rooms?.get(room)?.size || 0) > 0;
+    });
+    if (anyRecipientOnline) message.deliveredAt = new Date();
     await message.save();
 
     const previewText = body?.trim() || (mediaType === "audio" ? "🎙️ Voice note" : "📷 Photo");
@@ -241,8 +245,9 @@ export const sendMessage = async (req, res) => {
       conversationId,
     });
 
-    // Also emit to recipient's personal room for toasts and unread badges
-    if (recipientId) {
+    // Also emit to all recipients' personal rooms for instant popups and unread badge updates across all screens
+    recipientIds.forEach((rId) => {
+      const recipientRoom = String(rId._id || rId);
       io?.to(recipientRoom).emit("new_message", {
         message: populated,
         conversationId,
@@ -254,7 +259,7 @@ export const sendMessage = async (req, res) => {
           deliveredAt: message.deliveredAt,
         });
       }
-    }
+    });
 
     res.status(201).json({ message: populated });
   } catch (err) {

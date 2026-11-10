@@ -151,6 +151,23 @@ export default function Navbar() {
     navigate("/login");
   };
 
+  const handleOpenMessage = async (conversationId) => {
+    setToastMessage(null);
+    navigate("/messages");
+    if (conversationId) {
+      const state = useMessageStore.getState();
+      let conv = state.conversations.find((c) => String(c._id) === String(conversationId));
+      if (!conv) {
+        await state.loadConversations();
+        conv = useMessageStore.getState().conversations.find((c) => String(c._id) === String(conversationId));
+      }
+      if (conv) {
+        useMessageStore.getState().selectConversation(conv);
+        useMessageStore.getState().loadMessages(conversationId);
+      }
+    }
+  };
+
   const handleSearchInput = useCallback((e) => {
     const q = e.target.value;
     setSearchQuery(q);
@@ -300,38 +317,11 @@ export default function Navbar() {
                       {icon(isActive)}
                       <span className="hidden lg:block">{label}</span>
                       {badge > 0 && (
-                        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-rose-500 text-white text-[10px] font-extrabold rounded-full px-1 shadow-sm">
+                        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-rose-500 text-white text-[10px] font-extrabold rounded-full px-1 shadow-xs animate-scale-in">
                           {badge > 9 ? "9+" : badge}
                         </span>
                       )}
                     </button>
-
-                    {/* Notification Toast */}
-                    {toastMessage && toastMessage.type === "notification" && (
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate("/notifications");
-                          setToastMessage(null);
-                        }}
-                        className="absolute top-full right-0 mt-2 z-50 glass-lg border border-brand-500/40 p-3 rounded-2xl shadow-popover flex items-center gap-3 cursor-pointer hover:border-brand-400 transition-all animate-slide-up w-72 text-left"
-                      >
-                        <Avatar src={toastMessage.message.sender?.avatarUrl} name={toastMessage.message.sender?.displayName} username={toastMessage.message.sender?.username} size="xs" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider">New Notification</p>
-                          <p className="text-xs text-slate-800 dark:text-slate-100 truncate mt-0.5">{toastMessage.message.body}</p>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setToastMessage(null);
-                          }}
-                          className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs p-1"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    )}
 
                     {/* Notification Drawer */}
                     {notifOpen && (
@@ -407,38 +397,9 @@ export default function Navbar() {
                   {icon(isActive)}
                   <span className="hidden lg:block">{label}</span>
                   {badge > 0 && (
-                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-brand-500 text-white text-[10px] font-bold rounded-full px-1 shadow-xs">
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-rose-500 text-white text-[10px] font-extrabold rounded-full px-1 shadow-xs animate-scale-in">
                       {badge > 9 ? "9+" : badge}
                     </span>
-                  )}
-
-                  {to === "/messages" && toastMessage && toastMessage.type === "message" && (
-                    <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate("/messages");
-                        setToastMessage(null);
-                      }}
-                      className="absolute top-full right-0 mt-2 z-50 glass-lg border border-brand-500/40 p-3 rounded-2xl shadow-popover flex items-center gap-3 cursor-pointer hover:border-brand-400 transition-all animate-slide-up w-72 text-left"
-                    >
-                      <Avatar src={toastMessage.message.sender?.avatarUrl} name={toastMessage.message.sender?.displayName} username={toastMessage.message.sender?.username} size="xs" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider">New Message</p>
-                        <p className="text-xs text-slate-800 dark:text-slate-100 truncate mt-0.5">
-                          <span className="font-semibold">{toastMessage.message.sender?.displayName || toastMessage.message.sender?.username}</span>: {toastMessage.message.body}
-                        </p>
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setToastMessage(null);
-                        }}
-                        className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs p-1"
-                      >
-                        ✕
-                      </button>
-                    </div>
                   )}
                 </NavLink>
               );
@@ -665,7 +626,7 @@ export default function Navbar() {
               {icon(isActive)}
               <span className="text-[10px] mt-0.5 font-medium">{label}</span>
               {badge > 0 && (
-                <span className="absolute top-1 right-2 min-w-[16px] h-[16px] flex items-center justify-center bg-rose-500 text-white text-[9px] font-extrabold rounded-full px-1">
+                <span className="absolute top-1 right-2 min-w-[16px] h-[16px] flex items-center justify-center bg-rose-500 text-white text-[9px] font-extrabold rounded-full px-1 shadow-xs animate-scale-in">
                   {badge > 9 ? "9+" : badge}
                 </span>
               )}
@@ -673,6 +634,58 @@ export default function Navbar() {
           );
         })}
       </nav>
+
+      {/* Global In-App Notification / Message Toast (Visible everywhere on mobile & desktop) */}
+      {toastMessage && (
+        <aside
+          role="alert"
+          aria-live="assertive"
+          onClick={() => {
+            if (toastMessage.type === "message") {
+              handleOpenMessage(toastMessage.conversationId);
+            } else {
+              navigate("/notifications");
+              setToastMessage(null);
+            }
+          }}
+          className="fixed top-3 left-3 right-3 sm:left-auto sm:right-6 sm:w-96 z-50 glass-lg border border-brand-500/60 bg-white/95 dark:bg-slate-900/95 p-3 rounded-2xl shadow-popover flex items-center gap-3 cursor-pointer hover:border-brand-400 hover:shadow-brand transition-all animate-slide-up"
+        >
+          <div className="relative flex-shrink-0">
+            <Avatar
+              src={toastMessage.message.sender?.avatarUrl}
+              name={toastMessage.message.sender?.displayName}
+              username={toastMessage.message.sender?.username}
+              size="sm"
+            />
+            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 shadow-xs" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-1">
+              <p className="text-[10px] font-extrabold text-brand-600 dark:text-brand-400 uppercase tracking-wider flex items-center gap-1">
+                {toastMessage.type === "message" ? "💬 New Message" : "🔔 Notification"}
+              </p>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">just now</span>
+            </div>
+            <p className="text-xs font-bold text-slate-900 dark:text-white truncate mt-0.5">
+              {toastMessage.message.sender?.displayName || toastMessage.message.sender?.username || "Someone"}
+            </p>
+            <p className="text-xs text-slate-700 dark:text-slate-300 truncate mt-0.5">
+              {toastMessage.message.body}
+            </p>
+          </div>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setToastMessage(null);
+            }}
+            className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-xs flex-shrink-0"
+            title="Dismiss"
+          >
+            ✕
+          </button>
+        </aside>
+      )}
 
       {/* Notification Permission Request Toast */}
       {showNotifPrompt && (
