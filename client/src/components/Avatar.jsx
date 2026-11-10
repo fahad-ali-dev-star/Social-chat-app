@@ -27,8 +27,8 @@ const SIZE_PIXELS = {
   xs: 24,
   sm: 32,
   md: 40,
-  lg: 56,
-  xl: 80,
+  lg: 48,
+  xl: 64,
 };
 
 /**
@@ -54,7 +54,12 @@ export default function Avatar({
 
   return (
     <div
-      className={`relative inline-flex items-center justify-center flex-shrink-0 select-none ${sizeClass} ${className}`}
+      className={`relative inline-flex items-center justify-center flex-shrink-0 select-none aspect-square rounded-full ${sizeClass} ${className}`}
+      style={{
+        maxWidth: "100%",
+        maxHeight: "100%",
+        aspectRatio: "1 / 1",
+      }}
       aria-label={name || username}
     >
       <div
@@ -70,7 +75,14 @@ export default function Avatar({
             height={pixelSize}
             loading="eager"
             decoding="async"
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            style={{
+              width: "100%",
+              height: "100%",
+              maxWidth: "100%",
+              maxHeight: "100%",
+              objectFit: "cover",
+              aspectRatio: "1 / 1",
+            }}
             className="w-full h-full object-cover rounded-full block flex-shrink-0 pointer-events-none"
             onError={(e) => { e.target.style.display = "none"; }}
           />

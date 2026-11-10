@@ -52,7 +52,10 @@ export default function StoryBar() {
       />
 
       {/* Add / View My Story Circle */}
-      <div className="flex flex-col items-center justify-center text-center gap-1.5 flex-shrink-0 cursor-pointer group">
+      <div
+        className="flex flex-col items-center justify-center text-center gap-1.5 flex-shrink-0 cursor-pointer group"
+        style={{ width: "68px", minWidth: "68px", maxWidth: "68px" }}
+      >
         <div
           onClick={() => {
             if (myGroup && myGroup.stories.length > 0) {
@@ -61,7 +64,8 @@ export default function StoryBar() {
               fileInputRef.current?.click();
             }
           }}
-          className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-full p-[2.5px] flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105 ${
+          style={{ width: "56px", height: "56px", minWidth: "56px", minHeight: "56px" }}
+          className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-full p-[2.5px] flex items-center justify-center flex-shrink-0 overflow-hidden transition-transform duration-200 group-hover:scale-105 ${
             myGroup && myGroup.stories.length > 0
               ? myGroup.hasUnviewed
                 ? "bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-600"
@@ -74,7 +78,7 @@ export default function StoryBar() {
             name={currentUser?.displayName}
             username={currentUser?.username}
             size="lg"
-            className="w-full h-full rounded-full border-2 border-white dark:border-slate-900 object-cover"
+            className="border-2 border-white dark:border-slate-900"
           />
 
           {/* Plus Badge */}
@@ -106,9 +110,11 @@ export default function StoryBar() {
             key={group.user._id}
             onClick={() => openViewer(idx)}
             className="flex flex-col items-center justify-center text-center gap-1.5 flex-shrink-0 cursor-pointer group"
+            style={{ width: "68px", minWidth: "68px", maxWidth: "68px" }}
           >
             <div
-              className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full p-[2.5px] flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105 ${
+              style={{ width: "56px", height: "56px", minWidth: "56px", minHeight: "56px" }}
+              className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full p-[2.5px] flex items-center justify-center flex-shrink-0 overflow-hidden transition-transform duration-200 group-hover:scale-105 ${
                 group.hasUnviewed
                   ? "bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-600"
                   : "bg-slate-300 dark:bg-slate-700"
@@ -119,7 +125,7 @@ export default function StoryBar() {
                 name={group.user?.displayName}
                 username={group.user?.username}
                 size="lg"
-                className="w-full h-full rounded-full border-2 border-white dark:border-slate-900 object-cover"
+                className="border-2 border-white dark:border-slate-900"
               />
             </div>
             <span className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[68px]">
